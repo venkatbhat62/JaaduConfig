@@ -1,0 +1,2 @@
+2023-08-20T18:28:34.105728 ERROR JCConfigGen() error rendering the environment spec file:JCEnvironment.yml, exiting2023-08-20T18:29:41.957396 ERROR JCConfigGen() error rendering the environment spec file:JCEnvironment.yml, exiting2023-08-20T18:32:29.521679 ERROR JCConfigGen() error rendering the environment spec file:JCEnvironment.yml, exiting2023-08-20T18:57:17.988060 ERROR JCConfigGen() Mandatory parameter siteNamePrefixLength is not passed, exiting
+2023-08-20T18:57:38.052160 ERROR JCConfigGen() Mandatory parameter siteNamePrefixLength is not passed, exiting

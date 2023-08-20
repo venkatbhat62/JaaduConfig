@@ -1366,17 +1366,16 @@ def JCSetSystemVariables( defaultParameters, thisHostName, variables):
     """
     returnStatus = True
     errorMsg = ''
-    variables['JAHostName'] = thisHostName
-    variables['JAOSType'] = defaultParameters['OSType']
-    variables['JAOSName'] = defaultParameters['OSName']
-    variables['JAOSVersion'] = defaultParameters['OSVersion']
-    variables['JAComponent'] = defaultParameters['Component']
-    variables['JASiteName'] = defaultParameters['SiteName'] 
+    variables['JCHostName'] = thisHostName
+    variables['JCOSType'] = defaultParameters['OSType']
+    variables['JCOSName'] = defaultParameters['OSName']
+    variables['JCOSVersion'] = defaultParameters['OSVersion']
+    variables['JCComponent'] = defaultParameters['Component']
 
     import uuid
     import socket
-    variables['JAMACAddress'] = (':'.join(re.findall('..', '%012x' % uuid.getnode())))
-    variables['JAIPAddress'] = socket.gethostbyname(thisHostName)
+    variables['JCMACAddress'] = (':'.join(re.findall('..', '%012x' % uuid.getnode())))
+    variables['JCIPAddress'] = socket.gethostbyname(thisHostName)
 
     """
     TBD Add code to handle multiple interface info 

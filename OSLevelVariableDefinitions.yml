@@ -41,12 +41,14 @@ OS:
     JCTemplatePath: 'C:\Users\${username}\documents\github\JaaduConfig\templates'
     JCConfigPath: 'C:\Users\${username}\documents\github\JaaduConfig\conf'
     JCLogFilePath: 'C:\Users\${username}\documents\github\JaaduConfig\logs'
+
   All:
     JCHome: '$HOME/JaaduConfig'
     JCTemplatePath: '$HOME/JaaduConfig/templates'
     JCConfigPath: '$HOME/JaaduConfig/conf'
     JCLogFilePath: '$HOME/JaaduConfig/logs'
-    JCAddCommentToConfigHeader: 0
+    JCAddCommentToConfigHeader: 1
+    
     ### versions to be kept for all environments
     AllLogFileVersions: 9
     AllTomcatDebugLevel: INFO
@@ -58,4 +60,3 @@ OS:
     ### use the variable name {{ JCSiteName }}ws02 to make another web server hostname at the same site 
     #}
     SiteNamePrefixLength: 5
-

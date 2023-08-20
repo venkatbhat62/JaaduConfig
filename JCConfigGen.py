@@ -55,9 +55,14 @@ def JCConfigExit(reason):
 
 def JCHelp():
     helpString1 = """
-    python3 JCConfigGen.py -t <templateFileName1>[,<templateFileName2>,..] [-c <configFileName1>[,<configFileName2>,...]] 
-        [-e <environmentSpec>] [-s <siteName>] [-h <hostName or host's IP>] [-T <templatePath>] [-C <configPath>]
+    python3 JCConfigGen.py -s <siteNamePrefixLength> -t <templateFileName1>[,<templateFileName2>,..] [-c <configFileName1>[,<configFileName2>,...]] 
+        [-e <environmentSpec>] [-h <hostName or host's IP>] [-T <templatePath>] [-C <configPath>]
     
+    -s <siteNamePrefixLength> - integer value indicating the length of siteName in hostName starting from start of the hostName.
+        This value is used to derive the JCSiteName from hostName and then use JCSiteName variable to derive other hostnames at the site
+        while rendering the environment specification file.
+        Mandatory parameter
+
     -t <templateFileName1>[,<templateFileName2>,..] - template file names in CSV form.
         this template file format uses jinja2 spec (https://jinja.palletsprojects.com/en/3.1.x/)
         the template files are rendered using jinja render function
@@ -81,12 +86,6 @@ def JCHelp():
     [-e <environmentSpec>] - file contaning the variable definitions at OS, environment, network, site, component, and host level. 
         Optional parameter, defaults to JCEnvironment.yml file in current path
 
-    [-s <siteName>] - site name (typically first 3, 4, 5, 6,... letters of the hostname)
-        Optional parameter, if not passed, derived from current hostname by extracting 
-            SiteNamePrefixLength characters from the beginning of the hostname
-        Pass this value to generate config file from template in off-line generation mode or 
-            while generating the config file a host other than target host.
-
     [-h <hostName or host's IP>] - short hostname, FQDN name or IP address based on how the variable substituion need to occur
         Optional parameter, if not passed, derived from current hostname. 
             If HostNameType of ShortName is specified in environment spec, short hostname is used
@@ -107,7 +106,8 @@ def JCHelp():
 
     helpString3 = """
     Examples:
-        python3 JCConfigGen.py -t WSConfig.xml
+        python3 JCConfigGen.py -s 5 -t WSConfig.xml
+            First 5 letters of hostname are used to form JCSiteName variable. 
             Since environment spec is not passed, default file name of JCEnvironment.yml is used.
             Since template path is not passed, JCTemplatePath defined in environment spec is used.
             Since config path is not passed, JCConfigPath defined in environment spec is used
@@ -116,7 +116,7 @@ def JCHelp():
             If ran in interactive mode, logs are printed to terminal
             No debug info printed (default debug of 0)
 
-        python3 JCConfigGen.py -t WSConfig.xml -e WSEnvironmentVariables.yml
+        python3 JCConfigGen.py -s 5 -t WSConfig.xml -e WSEnvironmentVariables.yml
             Since template path is not passed, JCTemplatePath defined in environment spec is used.
             Since config path is not passed, JCConfigPath defined in environment spec is used
             Since no config file is passed, it generates the config file with name <configPath>/WSConfig.xml
@@ -124,30 +124,30 @@ def JCHelp():
             If ran in interactive mode, logs are printed to terminal
             No debug info printed (default debug of 0)
 
-        python3 JCConfigGen.py -t WSConfig.xml -c WSConfig.xml -e WSEnvironmentVariables.yml 
+        python3 JCConfigGen.py -s 5 -t WSConfig.xml -c WSConfig.xml -e WSEnvironmentVariables.yml 
             Since template path is not passed, JCTemplatePath defined in environment spec is used.
             Since config path is not passed, JCConfigPath defined in environment spec is used
             Writes the config to the given file name - <configPath>/WSConfig.xml
 
-        python3 JCConfigGen.py  -t WSConfig.xml,ASConfig.xml -c WSConfig.xml,ASConfig.xml -e EnvironmentVariables.yml
+        python3 JCConfigGen.py  -s 5 -t WSConfig.xml,ASConfig.xml -c WSConfig.xml,ASConfig.xml -e EnvironmentVariables.yml
             Creates <configPath>/WSConfig.xml after rendering the template file <templatePath>/WSConfig.xml
             Creates <configPath>/ASConfig.xml after rendering the template file <templatePath>/ASConfig.xml
             Here common environment variable file is passed that applies to both template files.
 
-        python3 JCConfigGen.py  -t WSConfig.xml -c WSConfig.xml -e EnvironmentVariables.yml -T ./Templates -C ./Conf
+        python3 JCConfigGen.py -s 5 -t WSConfig.xml -c WSConfig.xml -e EnvironmentVariables.yml -T ./Templates -C ./Conf
             Uses the relative template path of ./Templates
             Uses the relative config path of ./Conf
             Writes the config to the given file name - ./Conf/WSConfig.xml
 
-        python3 JCConfigGen.py  -t WSConfig.xml -c WSConfig.xml -D 3 -e EnvironmentVariables.yml
+        python3 JCConfigGen.py -s 5 -t WSConfig.xml -c WSConfig.xml -D 3 -e EnvironmentVariables.yml
             Writes the config to the given file name - <configPath>/WSConfig.xml
             Prints debug level 3 messages
            
-        python3 JCConfigGen.py -t WSConfig.xml -c WSConfig.xml -D 3 -l WSConfig.log -e EnvironmentVariables.yml
+        python3 JCConfigGen.py -s 5 -t WSConfig.xml -c WSConfig.xml -D 3 -l WSConfig.log -e EnvironmentVariables.yml
             Writes the output to the given file name - <configPath>/WSConfig.xml
             Prints debug level 3 messages to the log file with name WSConfig.log
 
-        python3 JCConfigGen.py -t WSConfig.xml -c WSConfig.xml -e EnvironmentVariables.yml -s site1 -h hostName1
+        python3 JCConfigGen.py -s 5 -t WSConfig.xml -c WSConfig.xml -e EnvironmentVariables.yml -s site1 -h hostName1
             siteName and hostName are passed to generate the config file on host other than target host.
 
         python JCConfigGen.py -V version <-- print version
@@ -252,10 +252,12 @@ if '-e' in argsPassed:
 
 JCCommand += " -e {0}".format(environmentFileName)
     
-thisSiteName = None
 if '-s' in argsPassed:
-    thisSiteName = argsPassed['-s']
-    JCCommand += " -s {0}".format(thisSiteName)
+    siteNamePrefix = int(argsPassed['-s'])
+    JCCommand += " -s {0}".format(siteNamePrefix)
+else:
+    errorMsg = "ERROR JCConfigGen() Mandatory parameter siteNamePrefixLength is not passed, exiting\n"
+    JCConfigExit(errorMsg)
 
 if '-h' in argsPassed:
     thisHostName = argsPassed['-h']
@@ -265,7 +267,8 @@ else:
 
 # if hostname has domain name, strip it
 hostNameParts = thisHostName.split('.')
-thisHostName = hostNameParts[0]
+defaultParameters['JCHostName'] = thisHostName = hostNameParts[0]
+defaultParameters['JCSiteName'] = thisHostName[ :siteNamePrefix]
 
 if '-l' in argsPassed:
     JCCommand += " -l {0}".format(argsPassed['-l'])
@@ -482,7 +485,6 @@ if 'LD_LIBRARY_PATH' in defaultParameters:
 defaultParameters['OSType'] = OSType
 defaultParameters['OSName'] = OSName
 defaultParameters['OSVersion'] = OSVersion
-defaultParameters['SiteName'] = thisHostName[ :defaultParameters['SitePrefixLength']]
 
 fileRetencyDurationInDays = defaultParameters['FileRetencyDurationInDays']
 

@@ -31,7 +31,7 @@ Environment:
      SquidProxyHosts: [ 'devSquidProxy1', 'devSquidProxy2']
      WebProxyHosts: [ 'devWebProxy1', 'devWebProxy2']
      # dev environment has one DB host
-     DBHosts: [ {{ siteName }}db01 ]
+     DBHosts: [ {{ JCSiteName }}db01 ]
      
    Test:
      ### keep  log files for 3 days 
@@ -46,7 +46,7 @@ Environment:
      SquidProxyHosts: [ 'testSquidProxy1', 'testSquidProxy2']
      WebProxyHosts: [ 'testWebProxy1', 'testWebProxy2']
      ## test environment has only two DB hosts
-     DBHosts: [ {{ siteName }}db01, {{ siteName }}db02 ]
+     DBHosts: [ {{ JCSiteName }}db01, {{ JCSiteName }}db02 ]
 
    UAT:
      HostName: (...)(u)(...)([0-9][0-9])
@@ -56,7 +56,7 @@ Environment:
      SquidProxyHosts: [ 'uatSquidProxy1', 'uatSquidProxy2']
      WebProxyHosts: [ 'uatWebProxy1', 'uatWebProxy2']
      ## uat environment has only one DB host
-     DBHosts: [ {{ siteName }}db01 ]
+     DBHosts: [ {{ JCSiteName }}db01 ]
  
    Prod1:
      ### keep  log files for 14 days 
@@ -84,7 +84,7 @@ Environment:
      ### to add xml comment in generated config file along with command used to generate the config file
      JCAddCommentToConfigHeader: 1
      ### default to 4 DB hosts, it applies to all prod environments
-     DBHosts: [ {{ siteName }}db01, {{ siteName }}db02, {{ siteName }}db03, {{ siteName }}db04 ]
+     DBHosts: [ {{ JCSiteName }}db01, {{ JCSiteName }}db02, {{ JCSiteName }}db03, {{ JCSiteName }}db04 ]
      # all prod environments have two squid proxy and 4 webproxy hosts
      SquidProxyHosts: [ 'prod1SquidProxy1', 'prod1SquidProxy2']
-     WebProxyHosts: [ 'prodWebProxy1', 'prodWebProxy2','prodWebProxy3'prodWebProxy4']
+     WebProxyHosts: [ 'prodWebProxy1', 'prodWebProxy2','prodWebProxy3', 'prodWebProxy4']

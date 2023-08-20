@@ -59,19 +59,20 @@ OS:
     JCTemplatePath: 'C:\Users\${username}\documents\github\JaaduConfig\templates'
     JCConfigPath: 'C:\Users\${username}\documents\github\JaaduConfig\conf'
     JCLogFilePath: 'C:\Users\${username}\documents\github\JaaduConfig\logs'
+
   All:
     JCHome: '$HOME/JaaduConfig'
     JCTemplatePath: '$HOME/JaaduConfig/templates'
     JCConfigPath: '$HOME/JaaduConfig/conf'
     JCLogFilePath: '$HOME/JaaduConfig/logs'
-    JCAddCommentToConfigHeader: 0
+    JCAddCommentToConfigHeader: 1
+    
     ### versions to be kept for all environments
     AllLogFileVersions: 9
     AllTomcatDebugLevel: INFO
     FileRetencyDurationInDays: 7
     
     SiteNamePrefixLength: 5
-
 
 
 Component:
@@ -179,10 +180,13 @@ Environment:
      WSDebugLevel: INFO
      WSLogFileSize: 1000000
      SquidProxyHosts: [ 'devSquidProxy1', 'devSquidProxy2']
+     WebProxyHosts: [ 'devWebProxy1', 'devWebProxy2']
+     # dev environment has one DB host
+     DBHosts: [ LAPTOdb01 ]
      
    Test:
-     ### keep  logs and result files for 7 days 
-     FileRetencyDurationInDays: 7
+     ### keep  log files for 3 days 
+     FileRetencyDurationInDays: 3
      ### ubuntu host to test the flows on Linux
      HostName: (...)(t)(...)([0-9][0-9])|(havembha)
      WSDebugLevel: DEBUG
@@ -191,26 +195,32 @@ Environment:
      AllLogFileVersions: 3
      SNMPDestinationIP: 127.0.0.1
      SquidProxyHosts: [ 'testSquidProxy1', 'testSquidProxy2']
+     WebProxyHosts: [ 'testWebProxy1', 'testWebProxy2']
+     ## test environment has only two DB hosts
+     DBHosts: [ LAPTOdb01, LAPTOdb02 ]
+
    UAT:
      HostName: (...)(u)(...)([0-9][0-9])
      WSDebugLevel: DEBUG
      WSLogFileSize: 10000000
      SNMPDestinationIP: 127.0.0.2
-
+     SquidProxyHosts: [ 'uatSquidProxy1', 'uatSquidProxy2']
+     WebProxyHosts: [ 'uatWebProxy1', 'uatWebProxy2']
+     ## uat environment has only one DB host
+     DBHosts: [ LAPTOdb01 ]
+ 
    Prod1:
-     ### keep  logs and result files for 14 days 
+     ### keep  log files for 14 days 
      FileRetencyDurationInDays: 14
      HostName: (...)(p1)(...)([0-9][0-9])
      WSLogFileSize: 90000000
      SNMPDestinationIP: 127.0.0.3
-     SquidProxyHosts: [ 'prod1SquidProxy1', 'prod1SquidProxy2']
    Prod2:
-     ### keep  logs and result files for 14 days 
+     ### keep  log files for 14 days 
      FileRetencyDurationInDays: 14
      HostName: (...)(p2)(...)([0-9][0-9])
      WSLogFileSize: 90000000
      SNMPDestinationIP: 127.0.0.4
-     SquidProxyHosts: [ 'prod2SquidProxy1', 'prod2SquidProxy2']
      
    ## Keep definition for 'All' environment at the end.
    ##  this is to ensure, Dev, Test, UAT, Prod etc environment specific values are seen/read first and 
@@ -222,4 +232,10 @@ Environment:
      ### debug level 0, no debug, 1 to 4, 4 being max details
      JCDebugLevel: 3
      JCHome: $HOME/JCConfigGen/
+     ### to add xml comment in generated config file along with command used to generate the config file
      JCAddCommentToConfigHeader: 1
+     ### default to 4 DB hosts, it applies to all prod environments
+     DBHosts: [ LAPTOdb01, LAPTOdb02, LAPTOdb03, LAPTOdb04 ]
+     # all prod environments have two squid proxy and 4 webproxy hosts
+     SquidProxyHosts: [ 'prod1SquidProxy1', 'prod1SquidProxy2']
+     WebProxyHosts: [ 'prodWebProxy1', 'prodWebProxy2','prodWebProxy3', 'prodWebProxy4']

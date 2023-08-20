@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["-D", "3", "-t", "WSConfig.xml", "-T", "./"]
+            "args": ["-D", "3", "-t", "WSConfig.xml", "-T", "./", "-s", "5"]
         }
     ]
 }
