@@ -1,0 +1,61 @@
+{#
+### Author: havembha@gmail.com, 2023-08-20
+### Contains OS level variable definitions at platform or application level
+### Include this file in component specific environment spec file using below syntax   
+### {% include "OSLevelVariableDefinitions.yml" %} 
+#}
+OS:
+  SunOS:
+    JCCommandToGetOSType: uname
+    JCCommandToGetOSVersion: cat /etc/os-release |grep VERSION_ID |awk -F'=' '{print $2}'
+    ### ksh command used to run programs, used in subprocess.run(args=['ksh', '-c', command])
+    JCCommandShell: ksh -c
+    ### add current working directory to path
+    LD_LIBRARY_PATH: ./
+    ### add current working directory to path
+    PATH: ./
+    JCHome: '/var/www/JaaduConfig'
+    JCConfigPath: '/var/www/JaaduConfig/conf'
+    JCLogFilePath: '/var/www/JaaduConfig/logs'
+    
+  Linux:
+    ### bash command used to run programs, used in subprocess.run(args=['bash', '-c', command])
+    JCCommandShell: bash -c
+    ### add current working directory to path
+    LD_LIBRARY_PATH: ./
+    ### add current working directory to path
+    PATH: ./
+    JCHome: '/var/www/JaaduConfig'
+    JCTemplatePath: /'var/www/JaaduConfig/templates'
+    JCConfigPath: '/var/www/JaaduConfig/conf'
+    JCLogFilePath: '/var/www/JaaduConfig/logs'
+
+  Windows:
+    ### powershell command used to gather environment details 
+    ###   commands specified in <subsystem><platform><component>.yml are executed using this powershell command
+    ###  this will be used to execute other commands specified for Windows environment
+    JCCommandShell: 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command'
+    ### root path on target host where the contents of Common and Custom files will be copied
+    ###   where other sub-directories like Common.PrevVersion, Custom.PrevVersion, Reports, Logs are present
+    JCHome: 'C:\Users\${username}\documents\github\JaaduConfig\'
+    JCTemplatePath: 'C:\Users\${username}\documents\github\JaaduConfig\templates'
+    JCConfigPath: 'C:\Users\${username}\documents\github\JaaduConfig\conf'
+    JCLogFilePath: 'C:\Users\${username}\documents\github\JaaduConfig\logs'
+  All:
+    JCHome: '$HOME/JaaduConfig'
+    JCTemplatePath: '$HOME/JaaduConfig/templates'
+    JCConfigPath: '$HOME/JaaduConfig/conf'
+    JCLogFilePath: '$HOME/JaaduConfig/logs'
+    JCAddCommentToConfigHeader: 0
+    ### versions to be kept for all environments
+    AllLogFileVersions: 9
+    AllTomcatDebugLevel: INFO
+    FileRetencyDurationInDays: 7
+    {#
+    ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames of local site. 
+    ### {{ JCSiteName }} variable is set with this value. This variable can be used to formulate hostname at that site 
+    ### dfwt1ws01 - hostname, dfwt1 - sitename, ws01 - component 
+    ### use the variable name {{ JCSiteName }}ws02 to make another web server hostname at the same site 
+    #}
+    SiteNamePrefixLength: 5
+

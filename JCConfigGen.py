@@ -214,8 +214,8 @@ else:
     ### template path not passed
     ### if ./Templates exists, use that path.
     ### else, use current working path itself
-    if os.path.exists("./Templates") == True:
-        commandLineTemplatePath = "{0}/Templates".format( os.getcwd() ) 
+    if os.path.exists("{0}/templates".format(os.getcwd())) == True:
+        commandLineTemplatePath = "{0}/templates".format( os.getcwd() ) 
     else:
         commandLineTemplatePath = os.getcwd()
 
@@ -231,13 +231,18 @@ if '-C' in argsPassed:
                 commandLineTemplatePath, commandLineConfigPath )
             JCConfigExit(errorMsg)
 else:
-    ### config path not passed
-    ### if ./conf exists, use that path.
-    ### else, use current working path itself
-    if os.path.exists("./templates") == True:
-        commandLineTemplatePath = "{0}/templates".format( os.getcwd() ) 
-    else:
-        commandLineTemplatePath = os.getcwd()
+    commandLineConfigPath = "{0}/conf".format(os.getcwd())
+
+if os.path.exists(commandLineConfigPath) == False:
+    os.mkdir(commandLineConfigPath)
+    if os.path.exists(commandLineConfigPath) == False:
+        JCConfigExit('ERROR, config path:{0} is not present, can not create it either, exiting'.format(
+            commandLineConfigPath) )
+
+if commandLineTemplatePath == commandLineConfigPath:
+    errorMsg = "ERROR JCConfigGen() TemplatePath:{0} and ConfigPath:{1} can't be same to avoid file being overwritten\n".format(
+        commandLineTemplatePath, commandLineConfigPath )
+    JCConfigExit(errorMsg)
 
 if '-e' in argsPassed:
     # environment file name passed.
@@ -307,11 +312,67 @@ if os.path.exists( defaultParameters['JCTemplatePath']) == False:
 
 if commandLineConfigPath != None:
     defaultParameters['JCConfigPath'] = os.path.expandvars(commandLineConfigPath)
-if os.path.exists( defaultParameters['JCConfigPath']) == False:
-    os.mkdir(defaultParameters['JCConfigPath'])
-    if os.path.exists( defaultParameters['JCConfigPath']) == False:
-        JCConfigExit('ERROR, config path:{0} is not present, can not create it either, exiting'.format(
-            defaultParameters['JCConfigPath'] ))   
+
+### define colors to print messages in different color
+myColors = {
+    'red':      ['',"\033[31m",'<font color="red">'], 
+    'green':    ['',"\033[32m",'<font color="green">'], 
+    'yellow':   ['',"\033[33m",'<font color="yellow">'], 
+    'blue':     ['',"\033[34m",'<font color="blue">'], 
+    'magenta':  ['',"\033[35m",'<font color="magenta">'], 
+    'cyan':     ['',"\033[36m",'<font color="cyan">'], 
+    'clear':    ['',"\033[0m",'</font>'], 
+    }
+
+# reportFormat is passed, set the color index
+HTMLBRTag = ''
+if '-r' in argsPassed:
+    if re.match('HTML|html', argsPassed['-r']) :
+        # this index needs to match the index at HTML tags for diff colors are assigned in myColors dictionary
+        colorIndex = 2
+        HTMLBRTag = "<br>"
+    elif re.match('color', argsPassed['-r']) :
+        # this index needs to match the index at which VT100 terminal color codes are assigned in myColors dictionary
+        colorIndex = 1
+    else:
+        # no color coding of lines
+        colorIndex = 0
+else:
+    # defaults to color
+    colorIndex = 1
+
+if debugLevel > 2:
+    # test LogLine() with test lines
+    myLines = """ERROR - expect to see in red color
+ERROR, - expect to see in red color
+WARN   - expect to see in yellow color
+PASS   - expect to see in green color
+"""
+    JCGlobalLib.LogLine(myLines, True, myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+returnResult = "_JAConfigGen_PASS_" # change this to other errors when error is encountered
+
+environmentTERM = os.getenv('TERM')
+### determin current session type using the term environment value, sleep for random duration if non-interactive 
+if environmentTERM == '' or environmentTERM == 'dumb':
+    interactiveMode = False
+
+    ### for non-interactive mode, if log file not opened yet, open it in append mode
+    if outputFileHandle == None:
+        tempOutputFileName = '{0}/{1}.{2}'.format(
+            defaultParameters['LogFilePath'],
+            logFileName,
+            JCGlobalLib.UTCDateForFileName())
+        try:
+            outputFileHandle = open ( tempOutputFileName, "a")
+        except OSError as err:
+            JCGlobalLib.LogLine(
+                    "ERROR JCConfigGen() Can't open output file:{0}, OSError: {1}".format( tempOutputFileName, err ),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+else:
+    interactiveMode = True
 
 ### 
 PATH = os.path.dirname(os.path.abspath(__file__))
@@ -387,73 +448,19 @@ def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, template
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
     return returnStatus
 
-
-### read environment definitions from JCEnvironment.yml
+### process environment spec file as template file so that any include, import type of tasks
+###   are performed before reading variable values from that file
+tempEnvironmentFileName = environmentFileName + ".temp"
+returnStatus = JCRenderTemplateFile(templateEnvironment, environmentFileName, environmentFileName, tempEnvironmentFileName,  )
+if ( returnStatus == False ):
+    JCConfigExit('ERROR JCConfigGen() error rendering the environment spec file:{0}, exiting'.format(environmentFileName))
+    
+### read environment definitions from rendered file (expanded with includes / imports etc)
 if JCReadEnvironmentConfig.JCReadEnvironmentConfig( 
-        environmentFileName, defaultParameters, yamlModulePresent, 
-        debugLevel,  environmentFileName, thisHostName, OSType ) == False:
+        tempEnvironmentFileName, defaultParameters, yamlModulePresent, 
+        debugLevel,  logFileName, thisHostName, OSType ) == False:
     JCConfigExit('Fatal ERROR, exiting')
 
-### define colors to print messages in different color
-myColors = {
-    'red':      ['',"\033[31m",'<font color="red">'], 
-    'green':    ['',"\033[32m",'<font color="green">'], 
-    'yellow':   ['',"\033[33m",'<font color="yellow">'], 
-    'blue':     ['',"\033[34m",'<font color="blue">'], 
-    'magenta':  ['',"\033[35m",'<font color="magenta">'], 
-    'cyan':     ['',"\033[36m",'<font color="cyan">'], 
-    'clear':    ['',"\033[0m",'</font>'], 
-    }
-
-# reportFormat is passed, set the color index
-HTMLBRTag = ''
-if '-r' in argsPassed:
-    if re.match('HTML|html', argsPassed['-r']) :
-        # this index needs to match the index at HTML tags for diff colors are assigned in myColors dictionary
-        colorIndex = 2
-        HTMLBRTag = "<br>"
-    elif re.match('color', argsPassed['-r']) :
-        # this index needs to match the index at which VT100 terminal color codes are assigned in myColors dictionary
-        colorIndex = 1
-    else:
-        # no color coding of lines
-        colorIndex = 0
-else:
-    # defaults to color
-    colorIndex = 1
-
-if debugLevel > 2:
-    # test LogLine() with test lines
-    myLines = """ERROR - expect to see in red color
-ERROR, - expect to see in red color
-WARN   - expect to see in yellow color
-PASS   - expect to see in green color
-"""
-    JCGlobalLib.LogLine(myLines, True, myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-
-returnResult = "_JAConfigGen_PASS_" # change this to other errors when error is encountered
-
-environmentTERM = os.getenv('TERM')
-### determin current session type using the term environment value, sleep for random duration if non-interactive 
-if environmentTERM == '' or environmentTERM == 'dumb':
-    interactiveMode = False
-
-    ### for non-interactive mode, if log file not opened yet, open it in append mode
-    if outputFileHandle == None:
-        tempOutputFileName = '{0}/{1}.{2}'.format(
-            defaultParameters['LogFilePath'],
-            logFileName,
-            JCGlobalLib.UTCDateForFileName())
-        try:
-            outputFileHandle = open ( tempOutputFileName, "a")
-        except OSError as err:
-            JCGlobalLib.LogLine(
-                    "ERROR JCConfigGen() Can't open output file:{0}, OSError: {1}".format( tempOutputFileName, err ),
-                    interactiveMode,
-                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-
-else:
-    interactiveMode = True
 
 errorMsg  = "INFO JCConfigGen() Version:{0}, OSType: {1}, OSName: {2}, OSVersion: {3}".format(
     JCVersion, OSType, OSName, OSVersion)

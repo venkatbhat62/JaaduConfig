@@ -1,0 +1,84 @@
+{#
+### Author: havembha@gmail.com, 2023-08-20
+### Contains Component level variable definitions at platform or application level
+### Include this file in component specific environment spec file using below syntax   
+### {% include "ComponentLevelVariableDefinitions.yml" %} 
+#}
+Component:
+  ### using regular expression syntax, specify how to find component name of the application of platform
+  ###  so that component specific variable values can be derived run time
+  ### AppConfig naming convention - <platform><componentName>.<subsystemName>.<configFileName>[.<version>].yml where
+  ###   <platform>  - keep this same as platform name defined before for this environment
+  ###   <componentName> - abbreviated component name
+  ###   <subsystemName> - Apps for main application, DB for Database configurations, OS for OS configurations
+  ###   [.<version>] - this application version will be appended run time to derive the config file to be used
+  ###           based on current application release installed on that host.
+  ###        If the system is Apps, command specified under CommandToGetAppVersion will be used 
+  ###           run time to derive the application version
+  ###        For OS subsystem, command specified under CommandToGetOSVersion is used to derive the version
+  ###        For DB subsystem, command specified under CommandToGetDBVersion is used to derive the version
+  ###        This field is optional
+  ###   <operation> - compare, conn, license, test, stats... 
+  ###           each operation will have it's own spec file per platform, per component.
+  ###           It is feasible to maintain that per subsystem also.
+  ###
+  ### Examples:
+  ###    Platform1APP.Apps.compare.yml, Platform1APP.OS.compare.yml, Platform1APP.DB.compare.yml
+  ###    Platform1APP.Apps.compare.2.yml, Platform1APP.OS.compare.8.yml, Platform1APP.DB.compare.10.yml
+  ###    Platform1APP.Apps.conn.yml, Platform1APP.OS.conn.yml, Platform1APP.DB.conn.yml
+  ###
+  ### Component spec is read when current hostname matches to the hostname regular expression defined under component name.
+  ### Include only the component type used while defining the hostname, not any environment indicator used as part of the hostname
+  ### Use wild card for site and environment portion of the hostname. If no such hostname convention exist, list all the
+  ###   possible hostnames under all environments for that component type here so that the component spec applies to all hosts of 
+  ###   that component type. 
+  ### Use environment indicator like d or dv for DEV, t or st, i or it for test, ut, u for UAT, p or pd for production environment
+  ###   in environment section so that variables can be defined that applies to all components in that environment.
+  ### Specification under environment overrides the spec under component.
+  APPWin:
+    ### if the current hostname match to below spec, it is considered of component type APP
+    HostName: (LAPTOP-QOCNVF0T1)
+
+  APPLinux:
+    HostName: (...)(d|t|u|p)(app)|(havembha)
+    ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
+    ### of local site. This is used by connectivity test module.
+    SitePrefixLength: 3
+
+  CS:
+    ### if the current hostname match to below spec, it is considered of component type APP
+    HostName: (...)(d|t|u|p)(cs)
+    ### datamask for this component
+    ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
+    ### of local site. This is used by connectivity test module.
+    SitePrefixLength: 3
+
+  DB:
+    ### if the current hostname match to below spec, it is considered of component type DB
+    HostName: (...)(d|t|u|p)(db)
+    ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
+    ### of local site. This is used by connectivity test module.
+    SitePrefixLength: 3
+
+  FS:
+    ### if the current hostname match to below spec, it is considered of component type FS
+    HostName: (...)(d|t|u|p)(fs)
+    ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
+    ### of local site. This is used by connectivity test module.
+    SitePrefixLength: 3
+
+  MGT:
+    ### if the current hostname match to below spec, it is considered of component type MGT
+    HostName: (...)(d|t|u|p)(mgt)
+    ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
+    ### of local site. This is used by connectivity test module.
+    SitePrefixLength: 3
+
+  WS:
+    ### if the current hostname match to below spec, it is considered of component type WS
+    HostName: (LAPTOP-QOCNVF0T|(...)(d|t|u|p)(ws))
+    ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames
+    ### of local site. This is used by connectivity test module.
+    SitePrefixLength: 3
+    WSDebugLevel: INFO
+    WSLogFileSize: 1000000

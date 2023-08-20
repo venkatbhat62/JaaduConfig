@@ -1,0 +1,90 @@
+{#
+### Author: havembha@gmail.com, 2023-08-20
+### Contains Environment level variable definitions at platform or application level
+### Include this file in component specific environment spec file using below syntax   
+### {% include "EnvironmentLevelVariableDefinitions.yml" %} 
+#}
+
+Environment:
+  ### HostName: Define this parameter so that environment specific variable values are picked up as last
+  ###  overriding value to supercede values defined in OS and component section(s) if any.
+  ###  When current hostname match to the regular expression spec, all definitions under that environment will be used.
+  ###  Spec under other environment without a regular expression match are ignored.
+  ###
+  ### Use environment indicator like d or dv for DEV, t or st, i or it for test, ut, u for UAT, p or pd for production environment
+  ###   in environment section so that variables can be defined that applies to all components in that environment.
+  ###
+  ### It is possible to define the hostname regular expression in a broader way like one that applies to non-prod (all dev, system test
+  ###   integration test or staging or pre-prod or uat) and another for prod (differest geographic locations or site groups) when
+  ###   the variable spec needs to apply to that broader group.
+  ### 
+  ### Specification under environment overrides the spec under component and OS sections.
+   Dev:
+     # specify hostname in regular expression form, when current hostname where JAAudit runs match to this expression,
+     #  specification under that environment will supercede specs at OS level and component level specs.
+     ### Windows PC to test the folws on Windows OS
+     HostName: ((...)(d)(...)([0-9][0-9]))|(LAPTOP-QOCNVF0T)
+     WSDebugLevel: DEBUG
+     SNMPDestinationIP: 127.0.0.1
+     WSDebugLevel: INFO
+     WSLogFileSize: 1000000
+     SquidProxyHosts: [ 'devSquidProxy1', 'devSquidProxy2']
+     WebProxyHosts: [ 'devWebProxy1', 'devWebProxy2']
+     # dev environment has one DB host
+     DBHosts: [ {{ siteName }}db01 ]
+     
+   Test:
+     ### keep  log files for 3 days 
+     FileRetencyDurationInDays: 3
+     ### ubuntu host to test the flows on Linux
+     HostName: (...)(t)(...)([0-9][0-9])|(havembha)
+     WSDebugLevel: DEBUG
+     WSLogFileSize: 10000000
+     ### versions to be kept for all environments
+     AllLogFileVersions: 3
+     SNMPDestinationIP: 127.0.0.1
+     SquidProxyHosts: [ 'testSquidProxy1', 'testSquidProxy2']
+     WebProxyHosts: [ 'testWebProxy1', 'testWebProxy2']
+     ## test environment has only two DB hosts
+     DBHosts: [ {{ siteName }}db01, {{ siteName }}db02 ]
+
+   UAT:
+     HostName: (...)(u)(...)([0-9][0-9])
+     WSDebugLevel: DEBUG
+     WSLogFileSize: 10000000
+     SNMPDestinationIP: 127.0.0.2
+     SquidProxyHosts: [ 'uatSquidProxy1', 'uatSquidProxy2']
+     WebProxyHosts: [ 'uatWebProxy1', 'uatWebProxy2']
+     ## uat environment has only one DB host
+     DBHosts: [ {{ siteName }}db01 ]
+ 
+   Prod1:
+     ### keep  log files for 14 days 
+     FileRetencyDurationInDays: 14
+     HostName: (...)(p1)(...)([0-9][0-9])
+     WSLogFileSize: 90000000
+     SNMPDestinationIP: 127.0.0.3
+   Prod2:
+     ### keep  log files for 14 days 
+     FileRetencyDurationInDays: 14
+     HostName: (...)(p2)(...)([0-9][0-9])
+     WSLogFileSize: 90000000
+     SNMPDestinationIP: 127.0.0.4
+     
+   ## Keep definition for 'All' environment at the end.
+   ##  this is to ensure, Dev, Test, UAT, Prod etc environment specific values are seen/read first and 
+   ##  assigned to variables. If a variable is not yet defined under Dev, Test.. like environment,
+   ##  and that variable is defined under 'All', value under 'All' will be picked up
+   ##  if variable is already defined under environment before, value under 'All' will be ignored.
+   ## HostName definition not needed in 'All' section, it will not be used for any selection criteria.
+   All:
+     ### debug level 0, no debug, 1 to 4, 4 being max details
+     JCDebugLevel: 3
+     JCHome: $HOME/JCConfigGen/
+     ### to add xml comment in generated config file along with command used to generate the config file
+     JCAddCommentToConfigHeader: 1
+     ### default to 4 DB hosts, it applies to all prod environments
+     DBHosts: [ {{ siteName }}db01, {{ siteName }}db02, {{ siteName }}db03, {{ siteName }}db04 ]
+     # all prod environments have two squid proxy and 4 webproxy hosts
+     SquidProxyHosts: [ 'prod1SquidProxy1', 'prod1SquidProxy2']
+     WebProxyHosts: [ 'prodWebProxy1', 'prodWebProxy2','prodWebProxy3'prodWebProxy4']
