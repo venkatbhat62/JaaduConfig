@@ -1,0 +1,536 @@
+""" 
+This script parses the configuration spec file to derive parameter values based on OS, environment, network, site,
+component and host level, then, prepares the configuration file(s) by replacing the variables with variable values in 
+template configuration file(s).
+
+Parameters passed: Review the JCHelp() for details.
+    
+Note - did not add python interpreter location at the top intentionally so that
+    one can execute this using python or python3 depending on python version on target host
+
+Author: havembha@gmail.com, 2023-08-19
+
+Execution flow
+   Get OSType, OSName, OSVersion
+   Based on python version, check for availability of yml module
+   Read JCEnvironment.yml and allow commands config file
+   Delete log files older than 7 days (not supported on windows yet)
+   Read configuration spec file
+   Replace variable names with variable values in template config file(s)
+"""
+
+import os
+import sys, signal
+import re
+import time
+import platform
+from collections import defaultdict
+
+from jinja2 import Environment, FileSystemLoader
+from jinja2 import exceptions
+from jinja2 import StrictUndefined
+
+import JCGlobalLib
+import JCReadEnvironmentConfig
+
+### define global variables
+JCVersion = "JC01.00.00"
+
+# default config file has environment specific definitions
+environmentFileName = "JCEnvironment.yml"
+
+debugLevel = 0
+logFileName  = 'JCConfigGen.log'
+
+# default parameters read from app config file name
+defaultParameters = {}
+
+def JCConfigExit(reason):
+    """
+    convenient functoin print & log error and exit.
+    """
+    print(reason)
+    JCGlobalLib.LogMsg(reason,  logFileName, True, True)
+    sys.exit()
+
+def JCHelp():
+    helpString1 = """
+    python3 JCConfigGen.py -t <templateFileName1>[,<templateFileName2>,..] [-c <configFileName1>[,<configFileName2>,...]] 
+        [-e <environmentSpec>] [-s <siteName>] [-h <hostName or host's IP>] [-T <templatePath>] [-C <configPath>]
+    
+    -t <templateFileName1>[,<templateFileName2>,..] - template file names in CSV form.
+        this template file format uses jinja2 spec (https://jinja.palletsprojects.com/en/3.1.x/)
+        the template files are rendered using jinja render function
+        Mandatory parameter
+
+    [-T <templatePath>] - absolute or relative path where template files are present
+        Optional parameter, defaults to JCTemplatePath defined in environment spec
+            If the path starts with ./, it is considered as relative path to current working path
+            If the path starts with /, it is considered as absolute path
+
+    [-c <configFileName1>[,<configFileName2>,...]] - config file name(s) in the same order as the template file name(s)
+        Optional parameter, defaults to config file name of <configPath>/<templateFileName1>, 
+         <configPath>/<templateFileName2>,...
+
+    [-C <configPath>] - absolute or relative path where config files are to be written
+        Optional parameter, defaults to JCConfigPath defined in environment spec
+            If the path starts with ./, it is considered as relative path to current working path
+            If the path starts with /, it is considered as absolute path
+        Note - <templatePath> and <configPath> can't be same
+
+    [-e <environmentSpec>] - file contaning the variable definitions at OS, environment, network, site, component, and host level. 
+        Optional parameter, defaults to JCEnvironment.yml file in current path
+
+    [-s <siteName>] - site name (typically first 3, 4, 5, 6,... letters of the hostname)
+        Optional parameter, if not passed, derived from current hostname by extracting 
+            SiteNamePrefixLength characters from the beginning of the hostname
+        Pass this value to generate config file from template in off-line generation mode or 
+            while generating the config file a host other than target host.
+
+    [-h <hostName or host's IP>] - short hostname, FQDN name or IP address based on how the variable substituion need to occur
+        Optional parameter, if not passed, derived from current hostname. 
+            If HostNameType of ShortName is specified in environment spec, short hostname is used
+            If HostNameType of FQDN is specified in environment spec, FQDN name is used
+            If HostNameType of IPAddress is specified in environment spec, current host's IP address is used.
+        Using the hostname, environment and component names are derived as specified in environment spec file.
+          After that, applicable specs based on environment and component are read from environment spec file.
+    """
+
+    helpString2 = """
+    [-D <debugLevel>] - 0 no debug, 1, 2, 3, 3 being max level
+        default is 0, no debug
+        
+    [-l <logFileName>] - log file name
+        Defaults to the terminal in the interactive mode
+        Defaults to JCConfigGen.log.YYYYmmddHHMMSS in non-interactive mode
+    """
+
+    helpString3 = """
+    Examples:
+        python3 JCConfigGen.py -t WSConfig.xml
+            Since environment spec is not passed, default file name of JCEnvironment.yml is used.
+            Since template path is not passed, JCTemplatePath defined in environment spec is used.
+            Since config path is not passed, JCConfigPath defined in environment spec is used
+            Since no config file name is passed, it generates the config file with name <configPath>/WSConfig.xml
+            If called in non-interactive mode, uses default file name - JCConfigGen.log.YYYYmmddHHMMSS
+            If ran in interactive mode, logs are printed to terminal
+            No debug info printed (default debug of 0)
+
+        python3 JCConfigGen.py -t WSConfig.xml -e WSEnvironmentVariables.yml
+            Since template path is not passed, JCTemplatePath defined in environment spec is used.
+            Since config path is not passed, JCConfigPath defined in environment spec is used
+            Since no config file is passed, it generates the config file with name <configPath>/WSConfig.xml
+            If called in non-interactive mode, uses default file name - JCConfigGen.log.YYYYmmddHHMMSS
+            If ran in interactive mode, logs are printed to terminal
+            No debug info printed (default debug of 0)
+
+        python3 JCConfigGen.py -t WSConfig.xml -c WSConfig.xml -e WSEnvironmentVariables.yml 
+            Since template path is not passed, JCTemplatePath defined in environment spec is used.
+            Since config path is not passed, JCConfigPath defined in environment spec is used
+            Writes the config to the given file name - <configPath>/WSConfig.xml
+
+        python3 JCConfigGen.py  -t WSConfig.xml,ASConfig.xml -c WSConfig.xml,ASConfig.xml -e EnvironmentVariables.yml
+            Creates <configPath>/WSConfig.xml after rendering the template file <templatePath>/WSConfig.xml
+            Creates <configPath>/ASConfig.xml after rendering the template file <templatePath>/ASConfig.xml
+            Here common environment variable file is passed that applies to both template files.
+
+        python3 JCConfigGen.py  -t WSConfig.xml -c WSConfig.xml -e EnvironmentVariables.yml -T ./Templates -C ./Conf
+            Uses the relative template path of ./Templates
+            Uses the relative config path of ./Conf
+            Writes the config to the given file name - ./Conf/WSConfig.xml
+
+        python3 JCConfigGen.py  -t WSConfig.xml -c WSConfig.xml -D 3 -e EnvironmentVariables.yml
+            Writes the config to the given file name - <configPath>/WSConfig.xml
+            Prints debug level 3 messages
+           
+        python3 JCConfigGen.py -t WSConfig.xml -c WSConfig.xml -D 3 -l WSConfig.log -e EnvironmentVariables.yml
+            Writes the output to the given file name - <configPath>/WSConfig.xml
+            Prints debug level 3 messages to the log file with name WSConfig.log
+
+        python3 JCConfigGen.py -t WSConfig.xml -c WSConfig.xml -e EnvironmentVariables.yml -s site1 -h hostName1
+            siteName and hostName are passed to generate the config file on host other than target host.
+
+        python JCConfigGen.py -V version <-- print version
+        python JCConfigGen.py -H help    <-- print this message
+    """
+    print(helpString1)
+    print(helpString2)
+    print(helpString3)
+    return None
+
+### install signal handler to exit upon ctrl-C
+def JCSignalHandler(sig, frame):
+    JCConfigExit("Control-C pressed")
+
+signal.signal(signal.SIGINT, JCSignalHandler)
+
+### display help if no arg passed
+if len(sys.argv) < 2:
+    JCHelp()
+    sys.exit()
+
+### parse arguments passed
+# this dictionary will have argument pairs
+# to find the value of an arg, use argsPassed[argName]
+argsPassed = {}
+
+JCGlobalLib.JCParseArgs(argsPassed)
+
+### formulate the command so that the command used to generate the output file can be added to the 
+###   config file header for traceability / debugging any issues
+JCCommand = 'python3 JCConfigGen.py '
+
+templateFileNames = None       
+if '-t' in argsPassed:
+    templateFileNames = argsPassed['-t']
+    JCCommand += " -t {0}".format(templateFileNames)
+    templateFileNamesList = list(map(str.strip, templateFileNames.split(',')))
+else:
+    print("ERROR JCConfigGen() mandatory parameter template file name is not passed")
+    JCHelp()
+    sys.exit()
+
+outputFileNames = None
+if '-c' in argsPassed:
+    outputFileNames = argsPassed['-c']
+    JCCommand += " -c {0}".format(outputFileNames)
+    outputFileNamesList = list(map(str.strip, outputFileNames.split(',')))
+else:
+    outputFileNamesList = []
+    ### use template names as the source to make output file names
+    for tempTemplateFileName in templateFileNamesList:
+        outputFileNamesList.append(tempTemplateFileName)
+
+commandLineTemplatePath = commandLineConfigPath = None
+
+if '-T' in argsPassed:
+    ### use template path passed
+    tempPath = argsPassed['-T']
+    if tempPath == "./":
+        tempPath = os.getcwd()
+    commandLineTemplatePath = tempPath
+    JCCommand += " -T {0}".format(tempPath)
+else:
+    ### template path not passed
+    ### if ./Templates exists, use that path.
+    ### else, use current working path itself
+    if os.path.exists("./Templates") == True:
+        commandLineTemplatePath = "{0}/Templates".format( os.getcwd() ) 
+    else:
+        commandLineTemplatePath = os.getcwd()
+
+if '-C' in argsPassed:
+    tempPath = argsPassed['-C']
+    if tempPath == "./":
+        tempPath = os.getcwd()
+    commandLineConfigPath = tempPath
+    JCCommand += " -C {0}".format(tempPath)
+    if commandLineTemplatePath != None:
+        if commandLineTemplatePath == commandLineConfigPath:
+            errorMsg = "ERROR JCConfigGen() TemplatePath:{0} and ConfigPath:{1} can't be same to avoid file being overwritten\n".format(
+                commandLineTemplatePath, commandLineConfigPath )
+            JCConfigExit(errorMsg)
+else:
+    ### config path not passed
+    ### if ./conf exists, use that path.
+    ### else, use current working path itself
+    if os.path.exists("./templates") == True:
+        commandLineTemplatePath = "{0}/templates".format( os.getcwd() ) 
+    else:
+        commandLineTemplatePath = os.getcwd()
+
+if '-e' in argsPassed:
+    # environment file name passed.
+    environmentFileName = argsPassed['-e']
+    if debugLevel > 0:
+        print("DEBUG-1 JCConfigGen() configFileName passed: {0}".format(environmentFileName))
+
+JCCommand += " -e {0}".format(environmentFileName)
+    
+thisSiteName = None
+if '-s' in argsPassed:
+    thisSiteName = argsPassed['-s']
+    JCCommand += " -s {0}".format(thisSiteName)
+
+if '-h' in argsPassed:
+    thisHostName = argsPassed['-h']
+    JCCommand += " -h {0}".format(thisHostName)
+else:
+    thisHostName = platform.node()
+
+# if hostname has domain name, strip it
+hostNameParts = thisHostName.split('.')
+thisHostName = hostNameParts[0]
+
+if '-l' in argsPassed:
+    JCCommand += " -l {0}".format(argsPassed['-l'])
+    try:
+        # log file requested, open in append mode
+        outputFileHandle = open ( argsPassed['-l'], "a")
+    except OSError as err:
+        errorMsg = "ERROR JCConfigGen() Can not open output file:|{0}|, OS error: {1}\n".format(argsPassed['-l'], err)
+        JCConfigExit(errorMsg)
+else:
+    outputFileHandle = None
+
+if '-D' in argsPassed:
+    debugLevel = int(argsPassed['-D'])
+    JCCommand += " -D {0}".format(debugLevel)
+if debugLevel > 0 :
+    print("DEBUG-1 JCConfigGen() Version {0}\nParameters passed: {1}".format(JCVersion, argsPassed))
+
+if '-V' in argsPassed:
+    print(JCVersion)
+    sys.exit()
+    
+if '-H' in argsPassed:
+    JCHelp()
+    sys.exit()
+
+# get OSType, OSName, and OSVersion. These are used to execute different python
+# functions based on compatibility to the environment
+OSType, OSName, OSVersion = JCGlobalLib.JCGetOSInfo(sys.version_info, debugLevel)
+
+### check whether yaml module is present
+yamlModulePresent = JCGlobalLib.JCIsYamlModulePresent()
+
+### save the command used to generate the output file so that it can be added to the config file header if opted
+defaultParameters['JCCommand'] = JCCommand
+defaultParameters['JCDateTime'] = JCGlobalLib.JCGetDateTime(0)
+
+### store the command line passed values for template and config paths so that these override the values 
+###  that may be present in environment spec file.
+if commandLineTemplatePath != None:
+    defaultParameters['JCTemplatePath'] = os.path.expandvars(commandLineTemplatePath)
+if os.path.exists( defaultParameters['JCTemplatePath']) == False:
+    JCConfigExit('ERROR, template path:{0} is not present, exiting'.format(defaultParameters['JCTemplatePath'] ))
+
+if commandLineConfigPath != None:
+    defaultParameters['JCConfigPath'] = os.path.expandvars(commandLineConfigPath)
+if os.path.exists( defaultParameters['JCConfigPath']) == False:
+    os.mkdir(defaultParameters['JCConfigPath'])
+    if os.path.exists( defaultParameters['JCConfigPath']) == False:
+        JCConfigExit('ERROR, config path:{0} is not present, can not create it either, exiting'.format(
+            defaultParameters['JCConfigPath'] ))   
+
+### 
+PATH = os.path.dirname(os.path.abspath(__file__))
+templateEnvironment = Environment(
+    autoescape=False,
+    loader=FileSystemLoader(defaultParameters['JCTemplatePath']),
+    undefined=StrictUndefined,
+    trim_blocks=False)
+
+### render environment spec file to include other files within the main file
+def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, templateFileName, configFileName ):
+    global defaultParameters, interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType
+    returnStatus = False
+    try:
+        with open(configFileName, 'w') as outputFile:
+            try:
+                tempTemplate = templateEnvironment.get_template(templateFileName)
+                try:
+                    outputText = tempTemplate.render(defaultParameters)
+                    outputFile.write(outputText)
+                    outputFile.close()
+                    if debugLevel > 0:
+                        JCGlobalLib.LogLine(
+                            "DEBUG-1 JCRenderTemplateFile() Generated output file:|{0}| from template file:|{1}|".format(
+                                    configFileName, templateFileName ),
+                                    interactiveMode,
+                                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                    returnStatus = True
+
+                except exceptions.TemplateError as error:
+                    JCGlobalLib.LogLine(
+                        " JCRenderTemplateFile() - TemplateError - Error rendering template file:{0} using variable values:{1}\nERROR {2}".format(
+                                templateFileName, defaultParameters, error ),
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                    
+                except exceptions.TemplateSyntaxError as error:
+                    JCGlobalLib.LogLine(
+                        " JCRenderTemplateFile() - TemplateSyntaxError - Error rendering template file:{0} using variable values:{1}\nERROR {2}".format(
+                                templateFileName, defaultParameters, error ),
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                except exceptions.UndefinedError as error:
+                    JCGlobalLib.LogLine(
+                        " JCRenderTemplateFile() - UndefinedError - Error rendering the template file:{0} using variable values:{1}\nERROR {2}".format(
+                                templateFileName,  defaultParameters, error),
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+            except exceptions.TemplateRuntimeError:
+                JCGlobalLib.LogLine(
+                    "ERROR JCRenderTemplateFile() - TemplateRuntimeError - Error opening the template file:{0} using jinja2 get_template()".format(
+                            templateFileNameWithPath ),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            except exceptions.TemplateAssertionError:
+                JCGlobalLib.LogLine(
+                    "ERROR JCRenderTemplateFile() - TemplateAssertionError - Error opening the template file:{0} using jinja2 get_template()".format(
+                            templateFileName ),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            except exceptions.UndefinedError:
+                JCGlobalLib.LogLine(
+                    "ERROR JCRenderTemplateFile() - UndefinedError - Error opening the template file:{0} using jinja2 get_template()".format(
+                            templateFileName ),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            
+    except OSError as error:
+        JCGlobalLib.LogLine(
+            "ERROR JCRenderTemplateFile() Could not open config file:{0}".format(configFileName ),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+    return returnStatus
+
+
+### read environment definitions from JCEnvironment.yml
+if JCReadEnvironmentConfig.JCReadEnvironmentConfig( 
+        environmentFileName, defaultParameters, yamlModulePresent, 
+        debugLevel,  environmentFileName, thisHostName, OSType ) == False:
+    JCConfigExit('Fatal ERROR, exiting')
+
+### define colors to print messages in different color
+myColors = {
+    'red':      ['',"\033[31m",'<font color="red">'], 
+    'green':    ['',"\033[32m",'<font color="green">'], 
+    'yellow':   ['',"\033[33m",'<font color="yellow">'], 
+    'blue':     ['',"\033[34m",'<font color="blue">'], 
+    'magenta':  ['',"\033[35m",'<font color="magenta">'], 
+    'cyan':     ['',"\033[36m",'<font color="cyan">'], 
+    'clear':    ['',"\033[0m",'</font>'], 
+    }
+
+# reportFormat is passed, set the color index
+HTMLBRTag = ''
+if '-r' in argsPassed:
+    if re.match('HTML|html', argsPassed['-r']) :
+        # this index needs to match the index at HTML tags for diff colors are assigned in myColors dictionary
+        colorIndex = 2
+        HTMLBRTag = "<br>"
+    elif re.match('color', argsPassed['-r']) :
+        # this index needs to match the index at which VT100 terminal color codes are assigned in myColors dictionary
+        colorIndex = 1
+    else:
+        # no color coding of lines
+        colorIndex = 0
+else:
+    # defaults to color
+    colorIndex = 1
+
+if debugLevel > 2:
+    # test LogLine() with test lines
+    myLines = """ERROR - expect to see in red color
+ERROR, - expect to see in red color
+WARN   - expect to see in yellow color
+PASS   - expect to see in green color
+"""
+    JCGlobalLib.LogLine(myLines, True, myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+returnResult = "_JAConfigGen_PASS_" # change this to other errors when error is encountered
+
+environmentTERM = os.getenv('TERM')
+### determin current session type using the term environment value, sleep for random duration if non-interactive 
+if environmentTERM == '' or environmentTERM == 'dumb':
+    interactiveMode = False
+
+    ### for non-interactive mode, if log file not opened yet, open it in append mode
+    if outputFileHandle == None:
+        tempOutputFileName = '{0}/{1}.{2}'.format(
+            defaultParameters['LogFilePath'],
+            logFileName,
+            JCGlobalLib.UTCDateForFileName())
+        try:
+            outputFileHandle = open ( tempOutputFileName, "a")
+        except OSError as err:
+            JCGlobalLib.LogLine(
+                    "ERROR JCConfigGen() Can't open output file:{0}, OSError: {1}".format( tempOutputFileName, err ),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+else:
+    interactiveMode = True
+
+errorMsg  = "INFO JCConfigGen() Version:{0}, OSType: {1}, OSName: {2}, OSVersion: {3}".format(
+    JCVersion, OSType, OSName, OSVersion)
+JCGlobalLib.LogLine(
+	errorMsg, 
+    interactiveMode,
+    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+### get current time in seconds
+currentTime = time.time()
+
+### if PATH and LD_LIBRARY are defined, set those environment variables
+if 'PATH' in defaultParameters:
+    os.environ['PATH'] = defaultParameters['PATH']
+
+if 'LD_LIBRARY_PATH' in defaultParameters:
+    os.environ['LD_LIBRARY_PATH'] = defaultParameters['LD_LIBRARY_PATH']
+
+defaultParameters['OSType'] = OSType
+defaultParameters['OSName'] = OSName
+defaultParameters['OSVersion'] = OSVersion
+defaultParameters['SiteName'] = thisHostName[ :defaultParameters['SitePrefixLength']]
+
+fileRetencyDurationInDays = defaultParameters['FileRetencyDurationInDays']
+
+if OSType == 'Windows':
+    ### get list of files older than retency period
+    filesToDelete = JCGlobalLib.JCFindModifiedFiles(
+            '{0}/{1}*'.format(defaultParameters['LogFilePath'], logFileName), 
+            currentTime - (fileRetencyDurationInDays*3600*24), ### get files modified before this time
+            debugLevel, thisHostName)
+    if len(filesToDelete) > 0:
+        for fileName in filesToDelete:
+            try:
+                os.remove(fileName)
+                if debugLevel > 3:
+                    JCGlobalLib.LogLine(
+                        "DEBUG-4 JCConfigGen() Deleting the file:{0}".format(fileName),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            except OSError as err:
+                JCGlobalLib.LogLine(
+			        "ERROR JCConfigGen() Error deleting old log file:{0}, errorMsg:{1}".format(fileName, err), 
+                	interactiveMode,
+                	myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                
+else:
+    # delete log files covering logs of operations also.
+    command = 'find {0} -name "{1}*" -mtime +{2} |xargs rm'.format(
+        defaultParameters['LogFilePath'], logFileName, fileRetencyDurationInDays)
+    if debugLevel > 1:
+        JCGlobalLib.LogLine(
+            "DEBUG-2 JCConfigGen() purging files with command:{0}".format(command),
+            interactiveMode,
+            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+    returnResult, returnOutput, errorMsg = JCGlobalLib.JCExecuteCommand(
+            defaultParameters['CommandShell'],
+            command, debugLevel, OSType)
+    if returnResult == False:
+        if re.match(r'File not found', errorMsg) != True:
+            if debugLevel > 1:
+                JCGlobalLib.LogLine(
+                    "DEBUG-2 JCConfigGen() No older log files to delete, {0}".format(errorMsg), 
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+
+
+for index in range( len(templateFileNamesList)):
+    configFileName = os.path.join( defaultParameters['JCConfigPath'], outputFileNamesList[index])
+    templateFileNameWithPath = os.path.join( defaultParameters['JCTemplatePath'], templateFileNamesList[index])
+    templateFileName = templateFileNamesList[index]
+    if os.path.isfile(templateFileNameWithPath) == False:
+        JCGlobalLib.LogLine(
+                "ERROR JCConfigGen() template file {0} not found".format(templateFileNameWithPath),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+        continue
+    JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, templateFileName, configFileName )

@@ -1,0 +1,20 @@
+{#
+Author: havembha@gmail.com,  2023-08-19
+Sample template file for WS (Web Server) configuration
+This contains jinja2 based spec to replace variables with values during the rendering
+For more info on jinga2 spec, refer https://jinja.palletsprojects.com/en/3.0.x/
+#}
+{% if JCAddCommentToConfigHeader == 1 %}
+<!-- 
+Author: havembha@gmail.com,  2023-08-19
+This config file was generated using JCConfigGen tool on {{ JCDateTime }} by passing following parameters
+python3 JCConfigGen.py {{ JCCommand }}
+-->
+{% endif %}
+<debugLevel>{{ WSDebugLevel }}</debugLevel>
+<logFileSize>{{ WSLogFileSize }}</logFileSize>
+<logFileVersions>{{ AllLogFileVersions }}</logFileVersions>
+{% for item in SquidProxyHosts %}
+ProxyPass {{ item }} http://{{ item }}:443/
+{% endfor %}
+<snmpDestination>{{ SNMPDestinationIP }}</snmpDestination>

@@ -1,0 +1,11 @@
+
+
+<debugLevel>INFO</debugLevel>
+<logFileSize>1000000</logFileSize>
+<logFileVersions>9</logFileVersions>
+
+ProxyPass devSquidProxy1 http://devSquidProxy1:443/
+
+ProxyPass devSquidProxy2 http://devSquidProxy2:443/
+
+<snmpDestination>127.0.0.1</snmpDestination>
