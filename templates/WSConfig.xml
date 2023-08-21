@@ -26,3 +26,7 @@ googleIP = {{ googleIP }}
 ### extract 3 letters from hostname as siteName, do not print new line
 {% set siteName = JCString("dfwhost", 0, 3) -%}
 siteName = {{ siteName }}
+
+### get current host's IP address
+{% set myIP = JCNameToIP( JCHostName ) -%}
+myIP = {{ myIP }}
