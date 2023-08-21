@@ -269,6 +269,11 @@ else:
 hostNameParts = thisHostName.split('.')
 defaultParameters['JCHostName'] = thisHostName = hostNameParts[0]
 defaultParameters['JCSiteName'] = thisHostName[ :siteNamePrefix]
+defaultParameters['JCSiteName3Chars'] = thisHostName[ :3]
+defaultParameters['JCSiteName4Chars'] = thisHostName[ :4]
+defaultParameters['JCSiteName5Chars'] = thisHostName[ :5]
+defaultParameters['JCSiteName6Chars'] = thisHostName[ :6]
+
 
 if '-l' in argsPassed:
     JCCommand += " -l {0}".format(argsPassed['-l'])
