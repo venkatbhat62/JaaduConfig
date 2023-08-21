@@ -500,8 +500,11 @@ defaultParameters['OSType'] = OSType
 defaultParameters['OSName'] = OSName
 defaultParameters['OSVersion'] = OSVersion
 
-fileRetencyDurationInDays = defaultParameters['FileRetencyDurationInDays']
-
+if 'FileRetencyDurationInDays' in defaultParameters:
+    fileRetencyDurationInDays = defaultParameters['FileRetencyDurationInDays']
+else:
+    fileRetencyDurationInDays = defaultParameters['FileRetencyDurationInDays'] = 7
+    
 if OSType == 'Windows':
     ### get list of files older than retency period
     filesToDelete = JCGlobalLib.JCFindModifiedFiles(
