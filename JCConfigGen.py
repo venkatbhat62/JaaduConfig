@@ -368,7 +368,7 @@ if environmentTERM == '' or environmentTERM == 'dumb':
     ### for non-interactive mode, if log file not opened yet, open it in append mode
     if outputFileHandle == None:
         tempOutputFileName = '{0}/{1}.{2}'.format(
-            defaultParameters['LogFilePath'],
+            defaultParameters['JCLogFilePath'],
             logFileName,
             JCGlobalLib.UTCDateForFileName())
         try:
@@ -500,16 +500,16 @@ defaultParameters['OSType'] = OSType
 defaultParameters['OSName'] = OSName
 defaultParameters['OSVersion'] = OSVersion
 
-if 'FileRetencyDurationInDays' in defaultParameters:
-    fileRetencyDurationInDays = defaultParameters['FileRetencyDurationInDays']
+if 'JCFileRetencyDurationInDays' in defaultParameters:
+    JCFileRetencyDurationInDays = defaultParameters['JCFileRetencyDurationInDays']
 else:
-    fileRetencyDurationInDays = defaultParameters['FileRetencyDurationInDays'] = 7
-    
+    JCFileRetencyDurationInDays = defaultParameters['JCFileRetencyDurationInDays'] = 7
+
 if OSType == 'Windows':
     ### get list of files older than retency period
     filesToDelete = JCGlobalLib.JCFindModifiedFiles(
-            '{0}/{1}*'.format(defaultParameters['LogFilePath'], logFileName), 
-            currentTime - (fileRetencyDurationInDays*3600*24), ### get files modified before this time
+            '{0}/{1}*'.format(defaultParameters['JCLogFilePath'], logFileName), 
+            currentTime - (JCFileRetencyDurationInDays*3600*24), ### get files modified before this time
             debugLevel, thisHostName)
     if len(filesToDelete) > 0:
         for fileName in filesToDelete:
@@ -529,7 +529,7 @@ if OSType == 'Windows':
 else:
     # delete log files covering logs of operations also.
     command = 'find {0} -name "{1}*" -mtime +{2} |xargs rm'.format(
-        defaultParameters['LogFilePath'], logFileName, fileRetencyDurationInDays)
+        defaultParameters['JCLogFilePath'], logFileName, JCFileRetencyDurationInDays)
     if debugLevel > 1:
         JCGlobalLib.LogLine(
             "DEBUG-2 JCConfigGen() purging files with command:{0}".format(command),
@@ -537,7 +537,7 @@ else:
             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
     returnResult, returnOutput, errorMsg = JCGlobalLib.JCExecuteCommand(
-            defaultParameters['CommandShell'],
+            defaultParameters['JCCommandShell'],
             command, debugLevel, OSType)
     if returnResult == False:
         if re.match(r'File not found', errorMsg) != True:

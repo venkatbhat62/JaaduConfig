@@ -912,7 +912,7 @@ def JCEvaluateCondition(serviceName, serviceAttributes, defaultParameters, debug
         ### now execute the command to get result 
         ###   command was checked for allowed command while reading the config spec
         if OSType == "Windows":
-            #tempCommandToEvaluateCondition = '{0} {1}'.format( defaultParameters['CommandShell'], tempCommand) 
+            #tempCommandToEvaluateCondition = '{0} {1}'.format( defaultParameters['JCCommandShell'], tempCommand) 
             tempCommandToEvaluateCondition = tempCommand 
         else:
             tempCommandToEvaluateCondition =  tempCommand
@@ -926,7 +926,7 @@ def JCEvaluateCondition(serviceName, serviceAttributes, defaultParameters, debug
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
         returnResult, returnOutput, errorMsg = JCExecuteCommand(
-                                            defaultParameters['CommandShell'],
+                                            defaultParameters['JCCommandShell'],
                                             tempCommandToEvaluateCondition, debugLevel, OSType)
         if returnResult == False:
             numberOfErrors += 1
@@ -1471,7 +1471,7 @@ def JCParseVariables(
             tempCommandToComputeVariableValue = os.path.expandvars( command ) 
 
             returnResult, returnOutput, errorMsg = JCExecuteCommand(
-                                                defaultParameters['CommandShell'],
+                                                defaultParameters['JCCommandShell'],
                                                 tempCommandToComputeVariableValue, debugLevel, OSType)
             if returnResult == True:
                 if len(returnOutput) > 0:

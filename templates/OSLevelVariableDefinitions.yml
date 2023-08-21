@@ -52,7 +52,7 @@ OS:
     ### versions to be kept for all environments
     AllLogFileVersions: 9
     AllTomcatDebugLevel: INFO
-    FileRetencyDurationInDays: 7
+    JCFileRetencyDurationInDays: 7
     {#
     ### number of characters to ignore while picking up partial hostname from current hostname and derive other hostnames of local site. 
     ### {{ JCSiteName }} variable is set with this value. This variable can be used to formulate hostname at that site 

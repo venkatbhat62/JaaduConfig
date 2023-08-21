@@ -35,7 +35,7 @@ Environment:
      
    Test:
      ### keep  log files for 3 days 
-     FileRetencyDurationInDays: 3
+     JCFileRetencyDurationInDays: 3
      ### ubuntu host to test the flows on Linux
      HostName: (...)(t)(...)([0-9][0-9])|(havembha)
      WSDebugLevel: DEBUG
@@ -60,13 +60,13 @@ Environment:
  
    Prod1:
      ### keep  log files for 14 days 
-     FileRetencyDurationInDays: 14
+     JCFileRetencyDurationInDays: 14
      HostName: (...)(p1)(...)([0-9][0-9])
      WSLogFileSize: 90000000
      SNMPDestinationIP: 127.0.0.3
    Prod2:
      ### keep  log files for 14 days 
-     FileRetencyDurationInDays: 14
+     JCFileRetencyDurationInDays: 14
      HostName: (...)(p2)(...)([0-9][0-9])
      WSLogFileSize: 90000000
      SNMPDestinationIP: 127.0.0.4

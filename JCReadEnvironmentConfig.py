@@ -62,11 +62,11 @@ def JCReadEnvironmentConfig(
     errorMsg = ''
 
     # Get global definitions (not environment specific)
-    if 'LogFilePath' in defaultParametersSpec:
-        defaultParameters['LogFilePath'] = defaultParametersSpec['LogFilePath']
+    if 'JCLogFilePath' in defaultParametersSpec:
+        defaultParameters['JCLogFilePath'] = defaultParametersSpec['JCLogFilePath']
 
-    if 'Platform' in defaultParametersSpec:
-        defaultParameters['Platform'] = defaultParametersSpec['Platform']
+    if 'JCPlatform' in defaultParametersSpec:
+        defaultParameters['JCPlatform'] = defaultParametersSpec['JCPlatform']
 
     # read OS section first
     if 'OS' in defaultParametersSpec:
@@ -133,12 +133,12 @@ def JCReadEnvironmentConfig(
 
 
     if OSType == "Windows":
-        if 'CommandShell' not in defaultParameters:
+        if 'JCCommandShell' not in defaultParameters:
             ### chekc if powershell 7 is present
             if os.path.exists('C:/Program Files/PowerShell/7/pwsh.exe'):
-                defaultParameters['CommandShell'] = 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command'
+                defaultParameters['JCCommandShell'] = 'C:/Program Files/PowerShell/7/pwsh.exe -NonInteractive -command'
             else:
-                defaultParameters['CommandShell'] ="TBD"
+                defaultParameters['JCCommandShell'] ="TBD"
 
     ### exand any environment variables used in path definitions
     if 'JCHome' in defaultParameters:
@@ -152,7 +152,7 @@ def JCReadEnvironmentConfig(
 
     ### create log file path if does not exist
     if 'JCLogFilePath' in defaultParameters:
-        logFilePath = defaultParameters['LogFilePath']
+        logFilePath = defaultParameters['JCLogFilePath']
     else:
         if 'JCHome' in defaultParameters:
             logFilePath = os.path.expandvars(defaultParameters['JCHome'] + "/logs")
