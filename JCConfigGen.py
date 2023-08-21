@@ -382,6 +382,22 @@ if environmentTERM == '' or environmentTERM == 'dumb':
 else:
     interactiveMode = True
 
+import socket
+def JCNameToIP( hostname):
+    return socket.gethostbyname(hostname)
+
+def JCString(myString, startPos, endPos):
+    if myString == None:
+        return ""
+    if startPos == None or endPos == None:
+        return myString
+    return myString[startPos:endPos]
+
+### below functions can be called within the template
+JCFunctions = {
+    "JCNameToIP": JCNameToIP,
+    "JCString": JCString,
+}
 ### 
 PATH = os.path.dirname(os.path.abspath(__file__))
 templateEnvironment = Environment(
@@ -391,13 +407,14 @@ templateEnvironment = Environment(
     trim_blocks=False)
 
 ### render environment spec file to include other files within the main file
-def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, templateFileName, configFileName ):
+def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, templateFileName, configFileName, function_dict ):
     global defaultParameters, interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType
     returnStatus = False
     try:
         with open(configFileName, 'w') as outputFile:
             try:
                 tempTemplate = templateEnvironment.get_template(templateFileName)
+                tempTemplate.globals.update(function_dict)
                 try:
                     outputText = tempTemplate.render(defaultParameters)
                     outputFile.write(outputText)
@@ -468,7 +485,7 @@ returnStatus = JCRenderTemplateFile(
     templateEnvironment, 
     defaultParameters['JCTemplatePath'] + environmentFileName, 
     environmentFileName, 
-    tempEnvironmentFileName,  )
+    tempEnvironmentFileName, JCFunctions )
 if ( returnStatus == False ):
     JCConfigExit('ERROR JCConfigGen() error rendering the environment spec file:{0}, exiting'.format(environmentFileName))
     
@@ -559,4 +576,4 @@ for index in range( len(templateFileNamesList)):
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
         continue
-    JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, templateFileName, configFileName )
+    JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, templateFileName, configFileName, JCFunctions )

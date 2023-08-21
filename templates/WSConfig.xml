@@ -18,3 +18,11 @@ python3 JCConfigGen.py {{ JCCommand }}
 ProxyPass {{ item }} http://{{ item }}:443/
 {% endfor %}
 <snmpDestination>{{ SNMPDestinationIP }}</snmpDestination>
+
+### get IP address of FQDN name, do not print new line
+{% set googleIP = JCNameToIP('google.com') -%}
+googleIP = {{ googleIP }}
+
+### extract 3 letters from hostname as siteName, do not print new line
+{% set siteName = JCString("dfwhost", 0, 3) -%}
+siteName = {{ siteName }}
