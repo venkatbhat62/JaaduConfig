@@ -155,13 +155,11 @@ def JCReadEnvironmentConfig(
         logFilePath = defaultParameters['LogFilePath']
     else:
         if 'JCHome' in defaultParameters:
-            logFilePath = defaultParameters['JCHome'] + "/Logs"
-
-    ### if logFilePath does not end with '/', add it
-    if re.match(r'/$', logFilePath) == None:
-        logFilePath = '{0}/'.format(logFilePath)
-    defaultParameters['JCLogFilePath'] = logFilePath
-
+            logFilePath = os.path.expandvars(defaultParameters['JCHome'] + "/logs")
+        else:
+            logFilePath = os.path.expandvars(os.getcwd() + "/logs")
+        defaultParameters['JCLogFilePath'] = logFilePath
+        
     if os.path.exists(logFilePath) == False:
         try:
             os.mkdir(logFilePath)
@@ -170,9 +168,6 @@ def JCReadEnvironmentConfig(
                 logFilePath, err )
             print( errorMsg)
             sys.exit(0)
-
-    if 'SitePrefixLength' not in defaultParameters:
-        defaultParameters['SitePrefixLength'] = 3
 
     if debugLevel > 1:
         print('DEBUG-2 JCReadEnvironmentConfig() Content of config file: {0}, read to  ConfigEnvironment: {1}'.format(
