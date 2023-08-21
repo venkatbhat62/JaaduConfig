@@ -443,6 +443,11 @@ def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, template
                             templateFileName ),
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            except OSError as error:
+                JCGlobalLib.LogLine(
+                    "ERROR JCRenderTemplateFile() Could not open template file:{0}".format(templateFileNameWithPath ),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             
     except OSError as error:
         JCGlobalLib.LogLine(
@@ -454,7 +459,11 @@ def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, template
 ### process environment spec file as template file so that any include, import type of tasks
 ###   are performed before reading variable values from that file
 tempEnvironmentFileName = environmentFileName + ".temp"
-returnStatus = JCRenderTemplateFile(templateEnvironment, environmentFileName, environmentFileName, tempEnvironmentFileName,  )
+returnStatus = JCRenderTemplateFile(
+    templateEnvironment, 
+    defaultParameters['JCTemplatePath'] + environmentFileName, 
+    environmentFileName, 
+    tempEnvironmentFileName,  )
 if ( returnStatus == False ):
     JCConfigExit('ERROR JCConfigGen() error rendering the environment spec file:{0}, exiting'.format(environmentFileName))
     
