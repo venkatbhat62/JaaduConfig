@@ -389,8 +389,13 @@ def JCNameToIP( hostname):
 def JCString(myString, startPos, endPos):
     if myString == None:
         return ""
-    if startPos == None or endPos == None:
-        return myString
+    if startPos == None:
+        ## return from start of string
+        startPos = 0
+    if endPos == None:
+        ## return till end of string
+        return myString[startPos:]
+    
     return myString[startPos:endPos]
 
 ### below functions can be called within the template
