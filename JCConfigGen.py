@@ -443,9 +443,16 @@ def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, template
                     returnStatus = True
 
                 except exceptions.TemplateError as error:
+                    tempLineNumber =  tempMessage = ''
+
+                    if hasattr(error, 'lineno') and error.lineno is not None:
+                        tempLineNumber = error.lineno
+                    if hasattr(error, 'message') and error.message is not None:
+                        tempMessage = error.message
+                    
                     JCGlobalLib.LogLine(
-                        " JCRenderTemplateFile() - TemplateError - Error rendering template file:{0} using variable values:{1}\nERROR {2}".format(
-                                templateFileName, defaultParameters, error ),
+                        " JCRenderTemplateFile() - TemplateError - Error rendering template file:{0} using variable values:{1}\nERROR {2}, lineno: {3}, message:{4}".format(
+                                templateFileName, defaultParameters, error, tempLineNumber, tempMessage ),
                                 interactiveMode,
                                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                     
