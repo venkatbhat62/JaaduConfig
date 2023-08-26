@@ -505,7 +505,7 @@ def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, template
 tempEnvironmentFileName = environmentFileName + ".temp"
 returnStatus = JCRenderTemplateFile(
     templateEnvironment, 
-    defaultParameters['JCTemplatePath'] + environmentFileName, 
+    os.path.join(defaultParameters['JCTemplatePath'] , environmentFileName), 
     environmentFileName, 
     tempEnvironmentFileName, JCFunctions )
 if ( returnStatus == False ):
