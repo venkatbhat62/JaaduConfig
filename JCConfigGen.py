@@ -279,6 +279,8 @@ hostNameParts = thisHostName.split('.')
 defaultParameters['JCHostName'] = thisHostName = hostNameParts[0]
 if siteNamePrefix != None:
     defaultParameters['JCSiteName'] = thisHostName[ :siteNamePrefix]
+else:
+    defaultParameters['JCSiteName'] = ''
 defaultParameters['JCSiteName3Chars'] = thisHostName[ :3]
 defaultParameters['JCSiteName4Chars'] = thisHostName[ :4]
 defaultParameters['JCSiteName5Chars'] = thisHostName[ :5]
