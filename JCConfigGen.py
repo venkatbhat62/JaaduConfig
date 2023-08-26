@@ -427,6 +427,9 @@ templateEnvironment = Environment(
 def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, templateFileName, configFileName, function_dict ):
     global defaultParameters, interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType
     returnStatus = False
+    sortedDefaultParameters = ''
+    for key, value in sorted(defaultParameters.items()):
+        sortedDefaultParameters += "{0}: {1}\n".format(key, value)
     try:
         with open(configFileName, 'w') as outputFile:
             try:
@@ -454,20 +457,20 @@ def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, template
                     
                     JCGlobalLib.LogLine(
                         " JCRenderTemplateFile() - TemplateError - Error rendering template file:{0} using variable values:{1}\nERROR {2}, lineno: {3}, message:{4}".format(
-                                templateFileName, defaultParameters, error, tempLineNumber, tempMessage ),
+                                templateFileName, sortedDefaultParameters, error, tempLineNumber, tempMessage ),
                                 interactiveMode,
                                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                     
                 except exceptions.TemplateSyntaxError as error:
                     JCGlobalLib.LogLine(
                         " JCRenderTemplateFile() - TemplateSyntaxError - Error rendering template file:{0} using variable values:{1}\nERROR {2}".format(
-                                templateFileName, defaultParameters, error ),
+                                templateFileName, sortedDefaultParameters, error ),
                                 interactiveMode,
                                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
                 except exceptions.UndefinedError as error:
                     JCGlobalLib.LogLine(
                         " JCRenderTemplateFile() - UndefinedError - Error rendering the template file:{0} using variable values:{1}\nERROR {2}".format(
-                                templateFileName,  defaultParameters, error),
+                                templateFileName,  sortedDefaultParameters, error),
                                 interactiveMode,
                                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
