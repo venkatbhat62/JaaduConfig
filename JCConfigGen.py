@@ -58,30 +58,19 @@ def JCHelp():
     python3 JCConfigGen.py -t <templateFileName1>[,<templateFileName2>,..] [-c <configFileName1>[,<configFileName2>,...]] 
         -s <siteNamePrefixLength> [-e <environmentSpec>] [-h <hostName or host's IP>] [-T <templatePath>] [-C <configPath>]
     
-    [-s <siteNamePrefixLength>] - integer value indicating the length of siteName in hostName starting from start of the hostName.
-        This value is used to derive the JCSiteName from hostName and then use JCSiteName variable to derive other hostnames at the site
-        while rendering the environment specification file.
-        Optional parameter, if not passed expect JCSiteName is set inside the environment spec file using the python function JCString()
-
     -t <templateFileName1>[,<templateFileName2>,..] - template file names in CSV form.
         this template file format uses jinja2 spec (https://jinja.palletsprojects.com/en/3.1.x/)
         the template files are rendered using jinja render function
         Mandatory parameter
 
-    [-T <templatePath>] - absolute or relative path where template files are present
-        Optional parameter, defaults to JCTemplatePath defined in environment spec
-            If the path starts with ./, it is considered as relative path to current working path
-            If the path starts with /, it is considered as absolute path
-
     [-c <configFileName1>[,<configFileName2>,...]] - config file name(s) in the same order as the template file name(s)
         Optional parameter, defaults to config file name of <configPath>/<templateFileName1>, 
          <configPath>/<templateFileName2>,...
 
-    [-C <configPath>] - absolute or relative path where config files are to be written
-        Optional parameter, defaults to JCConfigPath defined in environment spec
-            If the path starts with ./, it is considered as relative path to current working path
-            If the path starts with /, it is considered as absolute path
-        Note - <templatePath> and <configPath> can't be same
+    [-s <siteNamePrefixLength>] - integer value indicating the length of siteName in hostName starting from start of the hostName.
+        This value is used to derive the JCSiteName from hostName and then use JCSiteName variable to derive other hostnames at the site
+        while rendering the environment specification file.
+        Optional parameter, defaults to 5
 
     [-e <environmentSpec>] - file contaning the variable definitions at OS, component, and environment level. 
         Optional parameter, defaults to JCEnvironment.yml file in current path
@@ -90,6 +79,18 @@ def JCHelp():
         Optional parameter, if not passed, derived from current hostname where the this rool runs. 
         Using the hostname, OS, component and environment are derived as specified in environment spec file.
           After that, applicable specs based on OS, component and environment are read from environment spec file.
+
+    [-T <templatePath>] - absolute or relative path where template files are present
+        Optional parameter, defaults to JCTemplatePath defined in environment spec
+            If the path starts with ./, it is considered as relative path to current working path
+            If the path starts with /, it is considered as absolute path
+
+    [-C <configPath>] - absolute or relative path where config files are to be written
+        Optional parameter, defaults to JCConfigPath defined in environment spec
+            If the path starts with ./, it is considered as relative path to current working path
+            If the path starts with /, it is considered as absolute path
+        Note - <templatePath> and <configPath> can't be same
+
     """
 
     helpString2 = """
@@ -266,7 +267,7 @@ if '-s' in argsPassed:
     siteNamePrefix = int(argsPassed['-s'])
     JCCommand += " -s {0}".format(siteNamePrefix)
 else:
-    siteNamePrefix = None
+    siteNamePrefix = 5
 
 if '-h' in argsPassed:
     thisHostName = argsPassed['-h']
