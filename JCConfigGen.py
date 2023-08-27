@@ -527,7 +527,7 @@ if ( returnStatus == False ):
     JCConfigExit('ERROR JCConfigGen() error rendering the environment spec file:{0}, exiting'.format(environmentFileName))
 else:
     JCGlobalLib.LogLine(
-        "INFO JCConfigGen() Created temporary variable file: {0}, after processing environment file:{1}".format(
+        "INFO JCConfigGen() Created temporary variable file: {0}, after processing environment file: {1}".format(
                 tempEnvironmentFileName,
                 os.path.join(defaultParameters['JCTemplatePath'] , environmentFileName) ),
                 interactiveMode,
@@ -622,10 +622,10 @@ for index in range( len(templateFileNamesList)):
         continue
     returnStatus =  JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, templateFileName, configFileName, JCFunctions )
     if ( returnStatus == False ):
-        JCConfigExit('ERROR JCConfigGen() error rendering the environment spec file:{0}, exiting'.format(templateFileNameWithPath))
+        JCConfigExit('ERROR JCConfigGen() error rendering the environment spec file: {0}, exiting'.format(templateFileNameWithPath))
     else:
         JCGlobalLib.LogLine(
-            "INFO JCConfigGen() Created config file: {0}, after processing template file:{1}".format(
+            "INFO JCConfigGen() Created config file: {0}, after processing template file: {1}".format(
                 configFileName,
                 templateFileNameWithPath),
                 interactiveMode,
