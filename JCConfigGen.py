@@ -410,10 +410,19 @@ def JCString(myString, startPos, endPos):
     
     return myString[startPos:endPos]
 
+def JCSetVariable( name, value ):
+    """
+    This function stores the value of key in defaultParameters dictionary
+    """
+    global defaultParameters
+    defaultParameters[name] = value
+    return True
+
 ### below functions can be called within the template
 JCFunctions = {
     "JCNameToIP": JCNameToIP,
     "JCString": JCString,
+    "JCSetVariable": JCSetVariable,
 }
 ### 
 PATH = os.path.dirname(os.path.abspath(__file__))

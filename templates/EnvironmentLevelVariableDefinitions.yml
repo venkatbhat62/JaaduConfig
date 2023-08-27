@@ -32,7 +32,13 @@ Environment:
      WebProxyHosts: [ 'devWebProxy1', 'devWebProxy2']
      # dev environment has one DB host
      DBHosts: [ {{ JCSiteName }}db01 ]
-     
+     {% if JCSiteName == "LAPTO" %}
+     JCSiteNameIs: {{ JCSiteName }}
+     {% endif %}
+
+     ### store variable value in memory
+     {% set result = JCSetVariable("myVar", "myValue") %}
+
    Test:
      ### keep  log files for 3 days 
      JCFileRetencyDurationInDays: 3
