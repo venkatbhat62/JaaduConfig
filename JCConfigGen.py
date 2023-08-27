@@ -323,6 +323,9 @@ yamlModulePresent = JCGlobalLib.JCIsYamlModulePresent()
 ### save the command used to generate the output file so that it can be added to the config file header if opted
 defaultParameters['JCCommand'] = JCCommand
 defaultParameters['JCDateTime'] = JCGlobalLib.JCGetDateTime(0)
+defaultParameters['JCOSType'] = OSType
+defaultParameters['JCOSName'] = OSName
+defaultParameters['JCOSVersion'] = OSVersion
 
 ### store the command line passed values for template and config paths so that these override the values 
 ###  that may be present in environment spec file.
