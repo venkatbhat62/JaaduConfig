@@ -525,7 +525,14 @@ returnStatus = JCRenderTemplateFile(
     tempEnvironmentFileName, JCFunctions )
 if ( returnStatus == False ):
     JCConfigExit('ERROR JCConfigGen() error rendering the environment spec file:{0}, exiting'.format(environmentFileName))
-    
+else:
+    JCGlobalLib.LogLine(
+        "INFO JCConfigGen() Created temporary variable file: {0}, after processing environment file:{1}".format(
+                tempEnvironmentFileName,
+                os.path.join(defaultParameters['JCTemplatePath'] , environmentFileName) ),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
 ### read environment definitions from rendered file (expanded with includes / imports etc)
 if JCReadEnvironmentConfig.JCReadEnvironmentConfig( 
         tempEnvironmentFileName, defaultParameters, yamlModulePresent, 
@@ -613,4 +620,13 @@ for index in range( len(templateFileNamesList)):
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
         continue
-    JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, templateFileName, configFileName, JCFunctions )
+    returnStatus =  JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, templateFileName, configFileName, JCFunctions )
+    if ( returnStatus == False ):
+        JCConfigExit('ERROR JCConfigGen() error rendering the environment spec file:{0}, exiting'.format(templateFileNameWithPath))
+    else:
+        JCGlobalLib.LogLine(
+            "INFO JCConfigGen() Created config file: {0}, after processing template file:{1}".format(
+                configFileName,
+                templateFileNameWithPath),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
