@@ -34,7 +34,7 @@ import JCGlobalLib
 import JCReadEnvironmentConfig
 
 ### define global variables
-JCVersion = "JC01.00.00"
+JCVersion = "JC01.00.01"
 
 # default config file has environment specific definitions
 environmentFileName = "JCEnvironment.yml"
@@ -160,9 +160,14 @@ def JCHelp():
                 ### extract 3 letters from hostname as siteName, do not print new line
                 {% set JCSiteName = JCString("dfwhost", 0, 3) -%}
             JCNameToIP( hostname )
-                get current host's IP address
+                get host's IP address
                 {% set myIP = JCNameToIP( JCHostName ) -%}
-
+            JCNameToIPSegment( hostname )
+                get segment address of given host (first three octet of IP address)
+                {% set myIPSegment = JCNameToIPSegment( JCHostName ) -%} 
+            JCSetVariable( name, value )
+                set the variable value in the memory to be carried forward while processing other
+                   templates read via include
     """
     print(helpString1)
     print(helpString2)
@@ -202,15 +207,6 @@ else:
     sys.exit()
 
 outputFileNames = None
-if '-c' in argsPassed:
-    outputFileNames = argsPassed['-c']
-    JCCommand += " -c {0}".format(outputFileNames)
-    outputFileNamesList = list(map(str.strip, outputFileNames.split(',')))
-else:
-    outputFileNamesList = []
-    ### use template names as the source to make output file names
-    for tempTemplateFileName in templateFileNamesList:
-        outputFileNamesList.append(tempTemplateFileName)
 
 commandLineTemplatePath = commandLineConfigPath = None
 
@@ -287,6 +283,17 @@ defaultParameters['JCSiteName4Chars'] = thisHostName[ :4]
 defaultParameters['JCSiteName5Chars'] = thisHostName[ :5]
 defaultParameters['JCSiteName6Chars'] = thisHostName[ :6]
 
+if '-c' in argsPassed:
+    outputFileNames = argsPassed['-c']
+    JCCommand += " -c {0}".format(outputFileNames)
+    outputFileNamesList = list(map(str.strip, outputFileNames.split(',')))
+else:
+    outputFileNamesList = []
+    ### use template names as the source to make output file names
+    ###   append hostname to make each output file unique
+    for tempTemplateFileName in templateFileNamesList:
+        tempOutputFileName = "{0}.{1}".format( tempTemplateFileName, thisHostName )
+        outputFileNamesList.append( tempOutputFileName )
 
 if '-l' in argsPassed:
     JCCommand += " -l {0}".format(argsPassed['-l'])
@@ -400,9 +407,24 @@ else:
 
 import socket
 def JCNameToIP( hostname):
+    """
+    This function returns the IP address of hostname
+    """
     return socket.gethostbyname(hostname)
 
+def JCNameToIPSegment( hostname ):
+    """
+    Return the first three octects of IP address (skip last octet)
+    Use this to find the IP segment address of hostname
+    """
+    tempIPAddress = JCNameToIP( hostname)
+    lastDotPosition = tempIPAddress.rfind( '.')
+    return ( tempIPAddress[0:lastDotPosition])
+
 def JCString(myString, startPos, endPos):
+    """
+    This function returns the substring within the given start and end positions
+    """
     if myString == None:
         return ""
     if startPos == None:
@@ -427,6 +449,7 @@ JCFunctions = {
     "JCNameToIP": JCNameToIP,
     "JCString": JCString,
     "JCSetVariable": JCSetVariable,
+    "JCNameToIPSegment": JCNameToIPSegment,
 }
 ### 
 PATH = os.path.dirname(os.path.abspath(__file__))
@@ -518,14 +541,23 @@ def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, template
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
     return returnStatus
 
+if ( os.path.exists("./temp") == False ):
+    os.mkdir("./temp")
+    if ( os.path.exists("./temp") == False ):
+        JCConfigExit("ERROR ./temp does not exist, not able to create it")
+
 ### process environment spec file as template file so that any include, import type of tasks
 ###   are performed before reading variable values from that file
-tempEnvironmentFileName = environmentFileName + ".temp"
+tempEnvironmentFileName = "./temp/{0}.{1}".format( 
+            environmentFileName,
+            thisHostName )
+
 returnStatus = JCRenderTemplateFile(
     templateEnvironment, 
     os.path.join(defaultParameters['JCTemplatePath'] , environmentFileName), 
     environmentFileName, 
-    tempEnvironmentFileName, JCFunctions )
+    tempEnvironmentFileName, 
+    JCFunctions )
 if ( returnStatus == False ):
     JCConfigExit('ERROR JCConfigGen() error rendering the environment spec file:{0}, exiting'.format(environmentFileName))
 else:
@@ -559,10 +591,6 @@ if 'PATH' in defaultParameters:
 
 if 'LD_LIBRARY_PATH' in defaultParameters:
     os.environ['LD_LIBRARY_PATH'] = defaultParameters['LD_LIBRARY_PATH']
-
-defaultParameters['OSType'] = OSType
-defaultParameters['OSName'] = OSName
-defaultParameters['OSVersion'] = OSVersion
 
 if 'JCFileRetencyDurationInDays' in defaultParameters:
     JCFileRetencyDurationInDays = defaultParameters['JCFileRetencyDurationInDays']
