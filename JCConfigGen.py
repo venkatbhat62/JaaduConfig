@@ -440,8 +440,9 @@ def JCSetVariable( name, value ):
     """
     This function stores the value of key in defaultParameters dictionary
     """
-    global defaultParameters
-    defaultParameters[name] = value
+    global defaultParameters, templateEnvironment
+    templateEnvironment.globals[name] = value
+    # defaultParameters[name] = value
     return True
 
 ### below functions can be called within the template
