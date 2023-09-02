@@ -865,7 +865,9 @@ def JCGatherEnvironmentSpecs(storeCurrentValue, values, debugLevel, defaultParam
     for myKey, myValue in values.items():
         if debugLevel > 2:
             print('DEBUG-3 JCGatherEnvironmentSpecs() key: {0}, value: {1}'.format(myKey, myValue))
-
+        defaultParameters[myKey] = myValue
+        return
+    
         if myKey not in defaultParameters or storeCurrentValue == True:
             try:
                 if myKey in integerParameters or myValue.isnumeric():
