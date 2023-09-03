@@ -159,12 +159,12 @@ def JCHelp():
               by passing starting position (0 based) and end position.
                 ### extract 3 letters from hostname as siteName, do not print new line
                 {% set JCSiteName = JCString("dfwhost", 0, 3) -%}
-            JCNameToIP( hostname )
+            JCHostNameToIPAddress( hostname )
                 get host's IP address
-                {% set myIP = JCNameToIP( JCHostName ) -%}
-            JCNameToIPSegment( hostname )
+                {% set myIP = JCHostNameToIPAddress( JCHostName ) -%}
+            JCHostNameToIPSegment( hostname )
                 get segment address of given host (first three octet of IP address)
-                {% set myIPSegment = JCNameToIPSegment( JCHostName ) -%} 
+                {% set myIPSegment = JCHostNameToIPSegment( JCHostName ) -%} 
             JCSetVariable( name, value )
                 set the variable value in the memory to be carried forward while processing other
                    templates read via include
@@ -406,20 +406,29 @@ else:
     interactiveMode = True
 
 import socket
-def JCNameToIP( hostname):
+def JCHostNameToIPAddress( hostName):
     """
-    This function returns the IP address of hostname
+    This function returns the IP address of hostName
     """
-    return socket.gethostbyname(hostname)
+    return socket.gethostbyname(hostName)
 
-def JCNameToIPSegment( hostname ):
+def JCHostNameToIPSegment( hostname ):
     """
     Return the first three octects of IP address (skip last octet)
     Use this to find the IP segment address of hostname
     """
-    tempIPAddress = JCNameToIP( hostname)
+    tempIPAddress = JCHostNameToIPAddress( hostname)
     lastDotPosition = tempIPAddress.rfind( '.')
     return ( tempIPAddress[0:lastDotPosition])
+
+def JCHostNamesToIPAddresses( hostNames):
+    """
+    This function returns the IP addresses array of hostNames passed in array
+    """
+    ipAddressArray = []
+    for hostName in hostNames:
+        ipAddressArray.append( socket.gethostbyname(hostName))
+    return ipAddressArray
 
 def JCString(myString, startPos, endPos):
     """
@@ -447,10 +456,11 @@ def JCSetVariable( name, value ):
 
 ### below functions can be called within the template
 JCFunctions = {
-    "JCNameToIP": JCNameToIP,
+    "JCHostNameToIPAddress": JCHostNameToIPAddress,
     "JCString": JCString,
     "JCSetVariable": JCSetVariable,
-    "JCNameToIPSegment": JCNameToIPSegment,
+    "JCHostNameToIPSegment": JCHostNameToIPSegment,
+    "JCHostNamesToIPAddresses": JCHostNamesToIPAddresses,
 }
 ### 
 PATH = os.path.dirname(os.path.abspath(__file__))
