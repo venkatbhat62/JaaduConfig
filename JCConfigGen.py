@@ -482,44 +482,51 @@ def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, template
             try:
                 tempTemplate = templateEnvironment.get_template(templateFileName)
                 tempTemplate.globals.update(function_dict)
-                try:
-                    outputText = tempTemplate.render(defaultParameters)
-                    outputFile.write(outputText)
-                    outputFile.close()
-                    if debugLevel > 0:
-                        JCGlobalLib.LogLine(
-                            "DEBUG-1 JCRenderTemplateFile() Generated output file:|{0}| from template file:|{1}|".format(
-                                    configFileName, templateFileName ),
-                                    interactiveMode,
-                                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-                    returnStatus = True
+                outputText = tempTemplate.render(defaultParameters)
+                outputFile.write(outputText)
+                outputFile.close()
+                if debugLevel > 0:
+                    JCGlobalLib.LogLine(
+                        "DEBUG-1 JCRenderTemplateFile() Generated output file:|{0}| from template file:|{1}|".format(
+                                configFileName, templateFileName ),
+                                interactiveMode,
+                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+                returnStatus = True
 
-                except exceptions.TemplateError as error:
-                    tempLineNumber =  tempMessage = ''
+            except exceptions.FilterArgumentError:
+                JCGlobalLib.LogLine(
+                    "ERROR JCRenderTemplateFile() - FilterArgumentError - Error processing the template file:{0} using jinja2 get_template()".format(
+                            templateFileName ),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
-                    if hasattr(error, 'lineno') and error.lineno is not None:
-                        tempLineNumber = error.lineno
-                    if hasattr(error, 'message') and error.message is not None:
-                        tempMessage = error.message
-                    
-                    JCGlobalLib.LogLine(
-                        " JCRenderTemplateFile() - TemplateError - Error rendering template file:{0} using variable values:{1}\nERROR {2}, lineno: {3}, message:{4}".format(
-                                templateFileName, sortedDefaultParameters, error, tempLineNumber, tempMessage ),
-                                interactiveMode,
-                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-                    
-                except exceptions.TemplateSyntaxError as error:
-                    JCGlobalLib.LogLine(
-                        " JCRenderTemplateFile() - TemplateSyntaxError - Error rendering template file:{0} using variable values:{1}\nERROR {2}".format(
-                                templateFileName, sortedDefaultParameters, error ),
-                                interactiveMode,
-                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-                except exceptions.UndefinedError as error:
-                    JCGlobalLib.LogLine(
-                        " JCRenderTemplateFile() - UndefinedError - Error rendering the template file:{0} using variable values:{1}\nERROR {2}".format(
-                                templateFileName,  sortedDefaultParameters, error),
-                                interactiveMode,
-                                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            except exceptions.TemplateAssertionError:
+                JCGlobalLib.LogLine(
+                    "ERROR JCRenderTemplateFile() - TemplateAssertionError - Error opening the template file:{0} using jinja2 get_template()".format(
+                            templateFileName ),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+            except exceptions.TemplateError as error:
+                tempLineNumber =  tempMessage = ''
+
+                if hasattr(error, 'lineno') and error.lineno is not None:
+                    tempLineNumber = error.lineno
+                if hasattr(error, 'message') and error.message is not None:
+                    tempMessage = error.message
+                
+                JCGlobalLib.LogLine(
+                    " JCRenderTemplateFile() - TemplateError - Error rendering template file:{0} using variable values:{1}\nERROR {2}, lineno: {3}, message:{4}".format(
+                            templateFileName, sortedDefaultParameters, error, tempLineNumber, tempMessage ),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+            except exceptions.TemplateSyntaxError as error:
+                JCGlobalLib.LogLine(
+                    " JCRenderTemplateFile() - TemplateSyntaxError - Error rendering template file:{0} using variable values:{1}\nERROR {2}".format(
+                            templateFileName, sortedDefaultParameters, error ),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
             except exceptions.TemplateRuntimeError:
                 JCGlobalLib.LogLine(
@@ -527,21 +534,15 @@ def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, template
                             templateFileNameWithPath ),
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-            except exceptions.TemplateAssertionError:
+            except exceptions.UndefinedError as error:
                 JCGlobalLib.LogLine(
-                    "ERROR JCRenderTemplateFile() - TemplateAssertionError - Error opening the template file:{0} using jinja2 get_template()".format(
-                            templateFileName ),
-                            interactiveMode,
-                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
-            except exceptions.UndefinedError:
-                JCGlobalLib.LogLine(
-                    "ERROR JCRenderTemplateFile() - UndefinedError - Error opening the template file:{0} using jinja2 get_template()".format(
-                            templateFileName ),
+                    " JCRenderTemplateFile() - UndefinedError - Error rendering the template file:{0} using variable values:{1}\nERROR {2}".format(
+                            templateFileName,  sortedDefaultParameters, error),
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             except OSError as error:
                 JCGlobalLib.LogLine(
-                    "ERROR JCRenderTemplateFile() Could not open template file:{0}".format(templateFileNameWithPath ),
+                    "ERROR JCRenderTemplateFile() unknown error while processing the template file:{0}".format(templateFileNameWithPath ),
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             
