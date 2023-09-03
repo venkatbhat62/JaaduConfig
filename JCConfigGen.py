@@ -542,7 +542,8 @@ def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, template
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             except OSError as error:
                 JCGlobalLib.LogLine(
-                    "ERROR JCRenderTemplateFile() unknown error while processing the template file:{0}".format(templateFileNameWithPath ),
+                    "ERROR JCRenderTemplateFile() unknown error while processing the template file:{0}, error:{1}".format(
+                            templateFileNameWithPath, error ),
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             
