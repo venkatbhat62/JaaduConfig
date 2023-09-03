@@ -500,6 +500,13 @@ def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, template
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
+            except exceptions.SecurityError as error:
+                JCGlobalLib.LogLine(
+                    "ERROR JCRenderTemplateFile() - SecurityError - Error processing the template file:{0} using jinja2 get_template(), error:{1}".format(
+                            templateFileName, error ),
+                            interactiveMode,
+                            myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
             except exceptions.TemplateAssertionError:
                 JCGlobalLib.LogLine(
                     "ERROR JCRenderTemplateFile() - TemplateAssertionError - Error opening the template file:{0} using jinja2 get_template()".format(
