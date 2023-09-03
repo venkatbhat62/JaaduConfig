@@ -410,7 +410,21 @@ def JCHostNameToIPAddress( hostName):
     """
     This function returns the IP address of hostName
     """
-    return socket.gethostbyname(hostName)
+    tempIPAddress = None
+    try:
+        tempIPAddress = socket.gethostbyname(hostName)
+    except socket.gaierror:
+        JCGlobalLib.LogLine(
+                "ERROR JCHostNameToIPAddress() socket.gethostbyname() resulted in gaierror, error getting IP address of hostName:{0} ".format( hostName ),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+    except Exception as error:
+        JCGlobalLib.LogLine(
+                "ERROR JCHostNameToIPAddress() socket.gethostbyname() resulted in error: {0}, error getting IP address of hostName:{1} ".format(error, hostName ),
+                interactiveMode,
+                myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+    return tempIPAddress
 
 def JCHostNameToIPSegment( hostname ):
     """
@@ -427,7 +441,9 @@ def JCHostNamesToIPAddresses( hostNames):
     """
     ipAddressArray = []
     for hostName in hostNames:
-        ipAddressArray.append( socket.gethostbyname(hostName))
+        tempIPAddress = JCHostNameToIPAddress( hostName)
+        if tempIPAddress != None:
+            ipAddressArray.append( tempIPAddress )
     return ipAddressArray
 
 def JCString(myString, startPos, endPos):
