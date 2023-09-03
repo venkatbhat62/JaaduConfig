@@ -572,15 +572,100 @@ def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, template
             
     except OSError as error:
         JCGlobalLib.LogLine(
-            "ERROR JCRenderTemplateFile() Could not open config file:{0}".format(configFileName ),
+            "ERROR JCRenderTemplateFile() Could not open config file:{0}, error:{1}".format(configFileName, error ),
                     interactiveMode,
                     myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
     return returnStatus
+
+def JCMergeIncludeFile( fileName, outputFile):
+    """
+    This function reads all lines from fileName,
+    checks each line one by one for the presence of {% include <fileName> %}
+        If present, calls itself to process that include file
+        If not present, writes current line to output file
+    """
+    returnStatus = False
+    if os.path.isfile( fileName) == False:
+        ### check under the default template path
+        fileName = "{0}/{1}".format(defaultParameters['JCTemplatePath'], fileName)
+        if os.path.isfile( fileName ) == False:
+            JCGlobalLib.LogLine(
+                "ERROR JCMergeIncludeFile() File not found, include fileName:{0}".format(fileName ),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            return returnStatus
+    file = open( fileName, "r")
+    lines = file.readlines()
+    file.close()
+
+    regexString = re.compile(r'\{%(\s+)(include)(\s+)"(.+)"(\s+)%\}')
+    ignoreLine = re.compile(r'^#')
+
+    for line in lines:
+        try:
+            ### search for "{% include * %}" pattern in current line
+            returnVariables = regexString.findall( line )
+            if ( len( returnVariables) > 0 ):
+                ### if current line starts with '#', ignore this line
+                if ignoreLine.match(line):
+                    outputFile.write(line)
+                    continue
+                
+                ### found include statement, process this include file
+                ###   include file name at 4th position
+                JCMergeIncludeFile( returnVariables[0][3], outputFile)
+            else:
+                ### save current line in merged file
+                outputFile.write(line)
+
+        except OSError as error:
+            JCGlobalLib.LogLine(
+                "ERROR JCMergeIncludeFile() Error writing line to file, error:{0}".format(error ),
+                        interactiveMode,
+                        myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+            return False
+    
+    return returnStatus
+
+def JCMergeAllIncludeFiles( sourceFileName, saveFileName ):
+    returnStatus = True
+    if os.path.isfile( sourceFileName) == False:
+        return returnStatus
+    
+    try:
+        with open(saveFileName, 'w') as outputFile:
+            ### process the given file
+            JCMergeIncludeFile( sourceFileName, outputFile)
+
+    except OSError as error:
+        JCGlobalLib.LogLine(
+            "ERROR JCMergeAllIncludeFiles() Could not open the file:{0}, error:{1}".format(sourceFileName, error ),
+                    interactiveMode,
+                    myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
+
+    return returnStatus
+
 
 if ( os.path.exists("./temp") == False ):
     os.mkdir("./temp")
     if ( os.path.exists("./temp") == False ):
         JCConfigExit("ERROR ./temp does not exist, not able to create it")
+
+if sys.version_info.major < 3:
+    JCConfigExit("ERROR minimum python version needed is 3.6, current host has python:{0}".format(sys.version_info))
+
+mergedEnvironmentFileName = os.path.join(defaultParameters['JCTemplatePath'] , environmentFileName)
+
+if sys.version_info.minor < 9:
+    ### if python version is less than 3.10, jinja2 3.0 does not carry the context forward.
+    ###   read all include files to a single file and process it together so that context is properly available for jinja2
+    includeFileName = "./temp/{0}.include.{1}".format( 
+            environmentFileName,
+            thisHostName )
+    if( JCMergeAllIncludeFiles(mergedEnvironmentFileName, includeFileName) == True ):
+        ### If merge is successful, process the included file
+        ### If merge not successful, process the original file as is.
+        mergedEnvironmentFileName = includeFileName  
 
 ### process environment spec file as template file so that any include, import type of tasks
 ###   are performed before reading variable values from that file
@@ -590,7 +675,7 @@ tempEnvironmentFileName = "./temp/{0}.{1}".format(
 
 returnStatus = JCRenderTemplateFile(
     templateEnvironment, 
-    os.path.join(defaultParameters['JCTemplatePath'] , environmentFileName), 
+    mergedEnvironmentFileName, 
     environmentFileName, 
     tempEnvironmentFileName, 
     JCFunctions )
