@@ -487,7 +487,7 @@ templateEnvironment = Environment(
     trim_blocks=False)
 
 ### render environment spec file to include other files within the main file
-def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, templateFileName, configFileName, function_dict ):
+def JCRenderTemplateFile(templateEnvironment, templateFileName, configFileName, function_dict ):
     global defaultParameters, interactiveMode, myColors, colorIndex, outputFileHandle, HTMLBRTag, OSType
     returnStatus = False
     sortedDefaultParameters = ''
@@ -554,7 +554,7 @@ def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, template
             except exceptions.TemplateRuntimeError:
                 JCGlobalLib.LogLine(
                     "ERROR JCRenderTemplateFile() - TemplateRuntimeError - Error opening the template file:{0} using jinja2 get_template()".format(
-                            templateFileNameWithPath ),
+                            templateFileName ),
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             except exceptions.UndefinedError as error:
@@ -566,7 +566,7 @@ def JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, template
             except OSError as error:
                 JCGlobalLib.LogLine(
                     "ERROR JCRenderTemplateFile() unknown error while processing the template file:{0}, error:{1}".format(
-                            templateFileNameWithPath, error ),
+                            templateFileName, error ),
                             interactiveMode,
                             myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             
@@ -584,13 +584,14 @@ def JCMergeIncludeFile( fileName, outputFile):
         If present, calls itself to process that include file
         If not present, writes current line to output file
     """
+    global defaultParameters
     returnStatus = False
     if os.path.isfile( fileName) == False:
         ### check under the default template path
         fileName = "{0}/{1}".format(defaultParameters['JCTemplatePath'], fileName)
         if os.path.isfile( fileName ) == False:
             JCGlobalLib.LogLine(
-                "ERROR JCMergeIncludeFile() File not found, include fileName:{0}".format(fileName ),
+                "ERROR JCMergeIncludeFile() File not found, template fileName:{0}".format(fileName ),
                         interactiveMode,
                         myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
             return returnStatus
@@ -598,8 +599,12 @@ def JCMergeIncludeFile( fileName, outputFile):
     lines = file.readlines()
     file.close()
 
+    ### {% include <fileName> %}
     regexString = re.compile(r'\{%(\s+)(include)(\s+)"(.+)"(\s+)%\}')
-    ignoreLine = re.compile(r'^#')
+    ### ignore commented include line in the form
+    ### # {% include <fileName> %}
+    ###    ## {% include <fileName %}
+    ignoreLine = re.compile(r'^#|(\s+)(#+)(\s+)(\{%)')
 
     for line in lines:
         try:
@@ -654,44 +659,56 @@ if ( os.path.exists("./temp") == False ):
 if sys.version_info.major < 3:
     JCConfigExit("ERROR minimum python version needed is 3.6, current host has python:{0}".format(sys.version_info))
 
-mergedEnvironmentFileName = os.path.join(defaultParameters['JCTemplatePath'] , environmentFileName)
 
-if sys.version_info.minor < 9:
+if sys.version_info.minor < 2:
+    mergedEnvironmentFileName = os.path.join(defaultParameters['JCTemplatePath'] , environmentFileName)
     ### if python version is less than 3.10, jinja2 3.0 does not carry the context forward.
     ###   read all include files to a single file and process it together so that context is properly available for jinja2
-    includeFileName = "./temp/{0}.include.{1}".format( 
+    ### this file needs to be in template folder for jinja2 rendering to occur
+    mergedFileName = "{0}/{1}.include.{2}".format(
+            defaultParameters['JCTemplatePath'], 
             environmentFileName,
             thisHostName )
-    if( JCMergeAllIncludeFiles(mergedEnvironmentFileName, includeFileName) == True ):
+    if( JCMergeAllIncludeFiles(mergedEnvironmentFileName, mergedFileName) == True ):
         ### If merge is successful, process the included file
         ### If merge not successful, process the original file as is.
-        mergedEnvironmentFileName = includeFileName  
 
-### process environment spec file as template file so that any include, import type of tasks
-###   are performed before reading variable values from that file
-tempEnvironmentFileName = "./temp/{0}.{1}".format( 
+        ### create temp cofig file using original environmentFileName, not with include spec
+        tempConfigFile = "./temp/{0}.{1}".format( 
+                    environmentFileName,
+                    thisHostName )
+        ### this file is in template folder
+        environmentFileName = "{0}.include.{1}".format(
             environmentFileName,
             thisHostName )
+ 
+else:
+    ### process environment spec file as template file so that any include, import type of tasks
+    ###   are performed before reading variable values from that file
+    tempConfigFile = "./temp/{0}.{1}".format( 
+                environmentFileName,
+                thisHostName )
 
 returnStatus = JCRenderTemplateFile(
-    templateEnvironment, 
-    mergedEnvironmentFileName, 
+    templateEnvironment,  
     environmentFileName, 
-    tempEnvironmentFileName, 
+    tempConfigFile, 
     JCFunctions )
 if ( returnStatus == False ):
     JCConfigExit('ERROR JCConfigGen() error rendering the environment spec file:{0}, exiting'.format(environmentFileName))
 else:
     JCGlobalLib.LogLine(
         "INFO JCConfigGen() Created temporary variable file: {0}, after processing environment file: {1}".format(
-                tempEnvironmentFileName,
+                environmentFileName,
                 os.path.join(defaultParameters['JCTemplatePath'] , environmentFileName) ),
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
 
 ### read environment definitions from rendered file (expanded with includes / imports etc)
 if JCReadEnvironmentConfig.JCReadEnvironmentConfig( 
-        tempEnvironmentFileName, defaultParameters, yamlModulePresent, 
+        tempConfigFile, 
+        defaultParameters, 
+        yamlModulePresent, 
         debugLevel,  logFileName, thisHostName, OSType ) == False:
     JCConfigExit('Fatal ERROR, exiting')
 
@@ -768,17 +785,17 @@ for index in range( len(templateFileNamesList)):
     templateFileName = templateFileNamesList[index]
     if os.path.isfile(templateFileNameWithPath) == False:
         JCGlobalLib.LogLine(
-                "ERROR JCConfigGen() template file {0} not found".format(templateFileNameWithPath),
+                "ERROR JCConfigGen() template file {0} not found".format(templateFileName),
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
         continue
-    returnStatus =  JCRenderTemplateFile(templateEnvironment, templateFileNameWithPath, templateFileName, configFileName, JCFunctions )
+    returnStatus =  JCRenderTemplateFile(templateEnvironment, templateFileName, configFileName, JCFunctions )
     if ( returnStatus == False ):
-        JCConfigExit('ERROR JCConfigGen() error rendering the environment spec file: {0}, exiting'.format(templateFileNameWithPath))
+        JCConfigExit('ERROR JCConfigGen() error rendering the environment spec file: {0}, exiting'.format(templateFileName))
     else:
         JCGlobalLib.LogLine(
             "INFO JCConfigGen() Created config file: {0}, after processing template file: {1}".format(
                 configFileName,
-                templateFileNameWithPath),
+                templateFileName),
                 interactiveMode,
                 myColors, colorIndex, outputFileHandle, HTMLBRTag, False, OSType)
