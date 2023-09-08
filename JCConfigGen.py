@@ -162,6 +162,10 @@ def JCHelp():
             JCHostNameToIPAddress( hostname )
                 get host's IP address
                 {% set myIP = JCHostNameToIPAddress( JCHostName ) -%}
+            JCHostNamesToIPAddresses( [hostnames] )
+                get IP addresses of host names in an list
+                {% set my_site_host_names = [ appServer1, appServer2, WebServer 1] %}
+                {% set my_site_ips = JCHostNamesToIPAddresses( my_site_host_names ) %}
             JCHostNameToIPSegment( hostname )
                 get segment address of given host (first three octet of IP address)
                 {% set myIPSegment = JCHostNameToIPSegment( JCHostName ) -%} 
