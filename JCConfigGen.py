@@ -436,9 +436,12 @@ def JCHostNameToIPSegment( hostname ):
     Use this to find the IP segment address of hostname
     """
     tempIPAddress = JCHostNameToIPAddress( hostname)
-    lastDotPosition = tempIPAddress.rfind( '.')
-    return ( tempIPAddress[0:lastDotPosition])
-
+    if ( tempIPAddress != None ):
+        lastDotPosition = tempIPAddress.rfind( '.')
+        return ( tempIPAddress[0:lastDotPosition])
+    else:
+        return("ERROR xlating hostname to IP")
+    
 def JCHostNamesToIPAddresses( hostNames):
     """
     This function returns the IP addresses array of hostNames passed in array
@@ -448,6 +451,8 @@ def JCHostNamesToIPAddresses( hostNames):
         tempIPAddress = JCHostNameToIPAddress( hostName)
         if tempIPAddress != None:
             ipAddressArray.append( tempIPAddress )
+        else:
+            ipAddressArray.append( "ERROR xlating hostname to IP" )
     return ipAddressArray
 
 def JCString(myString, startPos, endPos):
