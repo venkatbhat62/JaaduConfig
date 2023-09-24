@@ -39,6 +39,10 @@ Environment:
      ### store variable value in memory
      {% set result = JCSetVariable("myVar", "myValue") %}
 
+     {# run system command and assign the returned response to the variable #}
+     {% set subnetMask = JCSystem("ipconfig |findstr Subnet") %}
+     subnetMask: {{ subnetMask }}
+     
    Test:
      ### keep  log files for 3 days 
      JCFileRetencyDurationInDays: 3

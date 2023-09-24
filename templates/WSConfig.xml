@@ -20,13 +20,36 @@ ProxyPass {{ item }} http://{{ item }}:443/
 <snmpDestination>{{ SNMPDestinationIP }}</snmpDestination>
 
 ### get IP address of FQDN name, do not print new line
-{% set googleIP = JCNameToIP('google.com') -%}
+{% set googleIP = JCHostNameToIPAddress('google' + '.com') -%}
 googleIP = {{ googleIP }}
+
+### get IP addresses of multiple hostnames by passing hostnames array
+{% set hostnames_array = [ "microsoft.com", "google.com" ] %}
+{% set ip_addresses = JCHostNamesToIPAddresses( hostnames_array ) %}
+ip_addresses: {{ ip_addresses }}
 
 ### extract 3 letters from hostname as siteName, do not print new line
 {% set siteName = JCString("dfwhost", 0, 3) -%}
 siteName = {{ siteName }}
 
+JCSiteNameIs = {{ JCSiteNameIs }}
+DBHosts: {{ DBHosts }}
+
 ### get current host's IP address
-{% set myIP = JCNameToIP( JCHostName ) -%}
+{% set myIP = JCHostNameToIPAddress( JCHostName ) -%}
 myIP = {{ myIP }}
+
+{% set myIPSegment = JCHostNameToIPSegment( JCHostName ) -%}
+myIPSegment = {{ myIPSegment }}
+
+### getting the value assigned before in another include file using JCSetVariable()
+myVar: {{ myVar }}
+
+{% set array1 = [ "array1_value1", "array1_value2"] %}
+{% set array2 = [ "array2_value1", "array2_value2"] %}
+
+### preparing array by combining arrays
+mergedArray: [ {% for item in array1 -%}"{{ item }}",{%- endfor -%} {% for item in array2 -%}"{{ item }}",{%- endfor -%} ]
+
+### use of JCSystem()
+subnetMask: {{ subnetMask }}

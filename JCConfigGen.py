@@ -172,6 +172,9 @@ def JCHelp():
             JCSetVariable( name, value )
                 set the variable value in the memory to be carried forward while processing other
                    templates read via include
+            JCSystem( command )
+                run system command and return the response
+                use it to run any windows or linux command and get the response back
     """
     print(helpString1)
     print(helpString2)
@@ -479,6 +482,17 @@ def JCSetVariable( name, value ):
     # defaultParameters[name] = value
     return True
 
+def JCSystem( command ):
+    """
+    This function executes the given system command or OS command and returns the response
+    """
+    result = None
+    try:
+        result = os.system( command)
+    except OSError as error:
+        result = "ERROR executing the command:|{0}|, error:|{1}|".format( command, error)
+    return result
+
 ### below functions can be called within the template
 JCFunctions = {
     "JCHostNameToIPAddress": JCHostNameToIPAddress,
@@ -486,6 +500,7 @@ JCFunctions = {
     "JCSetVariable": JCSetVariable,
     "JCHostNameToIPSegment": JCHostNameToIPSegment,
     "JCHostNamesToIPAddresses": JCHostNamesToIPAddresses,
+    "JCSystem": JCSystem,
 }
 ### 
 PATH = os.path.dirname(os.path.abspath(__file__))
